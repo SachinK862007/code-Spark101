@@ -10,7 +10,7 @@ describe("Public Services Directory screen", () => {
 
     expect(screen.getByTestId("services.categories")).toBeInTheDocument();
     expect(
-      screen.getByTestId("services.category_card.transport"),
+      screen.getByTestId("services.category_card.municipal"),
     ).toBeInTheDocument();
     expect(screen.getByTestId("services.stats")).toBeInTheDocument();
     expect(screen.getByTestId("services.stat.categories")).toBeInTheDocument();
@@ -24,14 +24,14 @@ describe("Public Services Directory screen", () => {
     const user = userEvent.setup();
     await renderWithRouter(<ServicesPage />, { path: "/services" });
 
-    await user.type(screen.getByTestId("services.search_input"), "passport");
+    await user.type(screen.getByTestId("services.search_input"), "solar");
 
     const table = screen.getByTestId("services.directory");
     expect(
-      within(table).getAllByText("Passport Seva Kendra").length,
+      within(table).getAllByText("Rooftop Solar Subsidy").length,
     ).toBeGreaterThan(0);
     expect(
-      within(table).queryByText("Rooftop Solar Subsidy"),
+      within(table).queryByText("District Hospital Services"),
     ).not.toBeInTheDocument();
   });
 
@@ -80,7 +80,7 @@ describe("Public Services Directory screen", () => {
       within(table).getAllByText("District Hospital Services").length,
     ).toBeGreaterThan(0);
     expect(
-      within(table).queryByText("Passport Seva Kendra"),
+      within(table).queryByText("Rooftop Solar Subsidy"),
     ).not.toBeInTheDocument();
   });
 
@@ -101,7 +101,7 @@ describe("Public Services Directory screen", () => {
     // The second page starts after the first six rows.
     expect(
       within(screen.getByTestId("services.row.1")).getByText(
-        "Emergency Helpline 112",
+        "Municipal Water Connection",
       ),
     ).toBeInTheDocument();
     expect(screen.getByTestId("services.pagination_prev")).toBeEnabled();

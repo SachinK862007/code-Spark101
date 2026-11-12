@@ -14,6 +14,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { apiRequest, ApiError } from "@/services/apiClient";
 import {
   Check,
   ChevronDown,
@@ -62,7 +63,7 @@ const ENDPOINTS: EndpointDef[] = [
     group: "Energy",
     source: "CEA Installed Capacity & Generation Reports",
     period: "Reporting period: Oct 2026 (monthly)",
-    request: `curl -X GET "https://api.urja.gov.in/api/v1/energy/mix?region=national" \\
+    request: `curl -X GET "http://127.0.0.1:8000/api/v1/energy/mix?region=national" \\
   -H "Accept: application/json"`,
     response: `{
   "region": "national",
@@ -92,7 +93,7 @@ const ENDPOINTS: EndpointDef[] = [
     group: "Energy",
     source: "CEA & State Load Despatch Centres",
     period: "Reporting period: Oct 2026 (monthly)",
-    request: `curl -X GET "https://api.urja.gov.in/api/v1/energy/states?limit=3" \\
+    request: `curl -X GET "http://127.0.0.1:8000/api/v1/energy/states?limit=3" \\
   -H "Accept: application/json"`,
     response: `{
   "count": 36,
@@ -118,7 +119,7 @@ const ENDPOINTS: EndpointDef[] = [
     group: "RPO",
     source: "MNRE RPO Trajectory Notification",
     period: "Reporting period: FY 2024-25 to FY 2029-30",
-    request: `curl -X GET "https://api.urja.gov.in/api/v1/rpo/targets?year=2026" \\
+    request: `curl -X GET "http://127.0.0.1:8000/api/v1/rpo/targets?year=2026" \\
   -H "Accept: application/json"`,
     response: `{
   "unit": "percent",
@@ -143,7 +144,7 @@ const ENDPOINTS: EndpointDef[] = [
     group: "RPO",
     source: "Illustrative calculation model",
     period: "Reporting period: FY 2026-27",
-    request: `curl -X POST "https://api.urja.gov.in/api/v1/rpo/calculate" \\
+    request: `curl -X POST "http://127.0.0.1:8000/api/v1/rpo/calculate" \\
   -H "Content-Type: application/json" \\
   -d '{
     "entity": "DISCOM-North",
@@ -176,7 +177,7 @@ const ENDPOINTS: EndpointDef[] = [
     group: "Solar",
     source: "Illustrative ROI model",
     period: "Reporting period: FY 2026-27",
-    request: `curl -X POST "https://api.urja.gov.in/api/v1/solar/calculate" \\
+    request: `curl -X POST "http://127.0.0.1:8000/api/v1/solar/calculate" \\
   -H "Content-Type: application/json" \\
   -d '{
     "capacity_kw": 10,
@@ -206,7 +207,7 @@ const ENDPOINTS: EndpointDef[] = [
     group: "Jobs",
     source: "Aggregated illustrative listings",
     period: "Reporting period: Nov 2026 (weekly)",
-    request: `curl -X GET "https://api.urja.gov.in/api/v1/jobs?sector=solar&limit=3" \\
+    request: `curl -X GET "http://127.0.0.1:8000/api/v1/jobs?sector=solar&limit=3" \\
   -H "Accept: application/json"`,
     response: `{
   "count": 1284,
@@ -231,7 +232,7 @@ const ENDPOINTS: EndpointDef[] = [
     group: "Finance",
     source: "Illustrative lender disclosures",
     period: "Reporting period: Q3 FY 2026-27",
-    request: `curl -X GET "https://api.urja.gov.in/api/v1/finance?category=solar" \\
+    request: `curl -X GET "http://127.0.0.1:8000/api/v1/finance?category=solar" \\
   -H "Accept: application/json"`,
     response: `{
   "count": 24,
@@ -246,7 +247,7 @@ const ENDPOINTS: EndpointDef[] = [
   {
     id: "circularity-recyclers",
     method: "GET",
-    path: "/api/v1/circularity/recyclers",
+    path: "/api/v1/circularity",
     name: "Recycler Directory",
     description:
       "Returns registered recyclers and handlers with material categories, licensed capacity and location for circular-economy routing.",
@@ -255,7 +256,7 @@ const ENDPOINTS: EndpointDef[] = [
     group: "Circularity",
     source: "CPCB Registered Recyclers Directory",
     period: "Reporting period: Oct 2026 (monthly)",
-    request: `curl -X GET "https://api.urja.gov.in/api/v1/circularity/recyclers?material=solar_pv" \\
+    request: `curl -X GET "http://127.0.0.1:8000/api/v1/circularity/recyclers?material=solar_pv" \\
   -H "Accept: application/json"`,
     response: `{
   "count": 312,
@@ -279,7 +280,7 @@ const ENDPOINTS: EndpointDef[] = [
     group: "Environment",
     source: "CPCB & CEA Environmental Reports",
     period: "Reporting period: Oct 2026 (monthly)",
-    request: `curl -X GET "https://api.urja.gov.in/api/v1/environment?region=national" \\
+    request: `curl -X GET "http://127.0.0.1:8000/api/v1/environment?region=national" \\
   -H "Accept: application/json"`,
     response: `{
   "region": "national",
@@ -296,7 +297,7 @@ const ENDPOINTS: EndpointDef[] = [
   {
     id: "forecast",
     method: "POST",
-    path: "/api/v1/forecast",
+    path: "/api/v1/forecasting/estimate",
     name: "Demand & Generation Forecast",
     description:
       "Accepts a region and horizon and returns an hourly day-ahead demand and renewable generation forecast with confidence bands.",
@@ -305,7 +306,7 @@ const ENDPOINTS: EndpointDef[] = [
     group: "Forecast",
     source: "Illustrative forecasting model",
     period: "Reporting period: 12 Nov 2026 (day-ahead)",
-    request: `curl -X POST "https://api.urja.gov.in/api/v1/forecast" \\
+    request: `curl -X POST "http://127.0.0.1:8000/api/v1/forecast" \\
   -H "Content-Type: application/json" \\
   -d '{
     "region": "national",
@@ -321,31 +322,6 @@ const ENDPOINTS: EndpointDef[] = [
     { "interval": "2026-11-12T07:00:00Z", "demand": 182110, "lower": 178400, "upper": 186900 },
     { "interval": "2026-11-12T08:00:00Z", "demand": 189640, "lower": 185100, "upper": 194300 },
     { "interval": "2026-11-12T09:00:00Z", "demand": 194220, "lower": 189700, "upper": 199100 }
-  ],
-  "demo_data": true
-}`,
-  },
-  {
-    id: "stakeholders-role",
-    method: "GET",
-    path: "/api/v1/stakeholders/{role}",
-    name: "Stakeholder Portal Data",
-    description:
-      "Returns the portal payload for a stakeholder role — citizen, entity, policymaker, finance or circular — with role-specific metrics.",
-    status: 200,
-    statusText: "OK",
-    group: "Stakeholders",
-    source: "Illustrative role-based views",
-    period: "Reporting period: Oct 2026 (monthly)",
-    request: `curl -X GET "https://api.urja.gov.in/api/v1/stakeholders/policymaker" \\
-  -H "Accept: application/json"`,
-    response: `{
-  "role": "policymaker",
-  "generated_at": "2026-11-12T06:00:00Z",
-  "metrics": [
-    { "label": "Installed renewable capacity", "value": 189200, "unit": "MW" },
-    { "label": "Renewable share of generation", "value": 24.6, "unit": "percent" },
-    { "label": "RPO compliance rate", "value": 91.4, "unit": "percent" }
   ],
   "demo_data": true
 }`,
@@ -535,7 +511,15 @@ function OverviewCard({ endpoint }: { endpoint: EndpointDef }) {
 /* Request builder — region selector and illustrative parameters       */
 /* ------------------------------------------------------------------ */
 
-function RequestBuilder({ endpoint }: { endpoint: EndpointDef }) {
+function RequestBuilder({
+  endpoint,
+  onRun,
+  running,
+}: {
+  endpoint: EndpointDef;
+  onRun: () => void;
+  running: boolean;
+}) {
   const [region, setRegion] = useState("national");
   const [horizon, setHorizon] = useState("24h");
   const [granularity, setGranularity] = useState("hourly");
@@ -687,15 +671,17 @@ function RequestBuilder({ endpoint }: { endpoint: EndpointDef }) {
         <Button
           type="button"
           data-ocid="api.request.run_button"
+          onClick={onRun}
+          disabled={running}
           className="rounded-full bg-primary px-5 text-primary-foreground shadow-subtle transition-smooth hover:bg-primary/90"
         >
           <Play className="mr-2 size-4" aria-hidden="true" />
-          Run request
+          {running ? "Running…" : "Run request"}
         </Button>
       </div>
       <p className="text-xs text-muted-foreground">
-        Illustrative control only — this prototype does not send a network
-        request.
+        Sends a real request to the URJA FastAPI backend configured by
+        VITE_API_BASE_URL. Query controls above are documentation only.
       </p>
     </div>
   );
@@ -705,8 +691,87 @@ function RequestBuilder({ endpoint }: { endpoint: EndpointDef }) {
 /* Endpoint detail — request, response, copy, test request             */
 /* ------------------------------------------------------------------ */
 
+const RUNNABLE: Record<
+  string,
+  { method: "GET" | "POST"; path: string; body?: unknown }
+> = {
+  "energy-mix": { method: "GET", path: "/api/v1/energy/mix" },
+  "energy-states": { method: "GET", path: "/api/v1/energy/states" },
+  "rpo-targets": { method: "GET", path: "/api/v1/rpo/targets" },
+  "rpo-calculate": {
+    method: "POST",
+    path: "/api/v1/rpo/calculate",
+    body: {
+      entity_name: "Sample DISCOM",
+      entity_category: "DISCOM",
+      state: "Rajasthan",
+      year: "2025-26",
+      consumption: 100000,
+      consumption_unit: "MWh",
+      renewable_procured: 24000,
+      certificates: 0,
+      obligation_category: "total",
+    },
+  },
+  "solar-calculate": {
+    method: "POST",
+    path: "/api/v1/solar/calculate",
+    body: {
+      state: "Karnataka",
+      city: "Bengaluru",
+      monthly_consumption_kwh: 320,
+      monthly_bill: 3000,
+      tariff: 8.2,
+      roof_area_sqft: 400,
+      consumer_category: "residential",
+      system_type: "ongrid",
+    },
+  },
+  jobs: { method: "GET", path: "/api/v1/jobs" },
+  finance: { method: "GET", path: "/api/v1/finance" },
+  "circularity-recyclers": { method: "GET", path: "/api/v1/circularity" },
+  environment: { method: "GET", path: "/api/v1/environment" },
+  forecast: {
+    method: "POST",
+    path: "/api/v1/forecasting/estimate",
+    body: {
+      location: "Bengaluru",
+      technology: "solar",
+      capacity_mw: 10,
+      horizon_days: 3,
+    },
+  },
+};
+
 function EndpointDetail({ endpoint }: { endpoint: EndpointDef }) {
-  const [tested, setTested] = useState(false);
+  const [payload, setPayload] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [running, setRunning] = useState(false);
+  const [elapsed, setElapsed] = useState<number | null>(null);
+
+  async function runRequest() {
+    const runnable = RUNNABLE[endpoint.id];
+    if (!runnable) return;
+    setRunning(true);
+    setError(null);
+    setPayload(null);
+    const started = performance.now();
+    try {
+      const data = await apiRequest<unknown>(runnable.path, {
+        method: runnable.method,
+        body: runnable.body,
+        timeoutMs: 20_000,
+      });
+      setPayload(JSON.stringify(data, null, 2));
+    } catch (caught) {
+      setError(
+        caught instanceof ApiError ? caught.message : "The request failed.",
+      );
+    } finally {
+      setElapsed(Math.round(performance.now() - started));
+      setRunning(false);
+    }
+  }
 
   return (
     <div className="min-w-0 space-y-6">
@@ -743,7 +808,11 @@ function EndpointDetail({ endpoint }: { endpoint: EndpointDef }) {
 
         <Separator className="my-6" />
 
-        <RequestBuilder endpoint={endpoint} />
+        <RequestBuilder
+          endpoint={endpoint}
+          onRun={runRequest}
+          running={running}
+        />
 
         <Separator className="my-6" />
 
@@ -757,7 +826,8 @@ function EndpointDetail({ endpoint }: { endpoint: EndpointDef }) {
           <Button
             type="button"
             data-ocid="api.request.test_button"
-            onClick={() => setTested(true)}
+            onClick={runRequest}
+            disabled={running}
             className="rounded-full bg-primary px-5 text-primary-foreground shadow-subtle transition-smooth hover:bg-primary/90"
           >
             <Play className="mr-2 size-4" aria-hidden="true" />
@@ -776,8 +846,8 @@ function EndpointDetail({ endpoint }: { endpoint: EndpointDef }) {
         </div>
 
         <p className="mt-3 text-xs text-muted-foreground">
-          Illustrative control only — this prototype does not send a network
-          request.
+          This button calls the endpoint on the running backend. The cURL example
+          is reference documentation.
         </p>
       </Card>
 
@@ -788,7 +858,13 @@ function EndpointDetail({ endpoint }: { endpoint: EndpointDef }) {
           </h4>
           <SampleTag />
         </div>
-        <ResponsePreview endpoint={endpoint} tested={tested} />
+        <ResponsePreview
+          endpoint={endpoint}
+          payload={payload}
+          error={error}
+          running={running}
+          elapsed={elapsed}
+        />
       </div>
     </div>
   );
@@ -800,32 +876,50 @@ function EndpointDetail({ endpoint }: { endpoint: EndpointDef }) {
 
 function ResponsePreview({
   endpoint,
-  tested,
+  payload,
+  error,
+  running,
+  elapsed,
 }: {
   endpoint: EndpointDef;
-  tested: boolean;
+  payload: string | null;
+  error: string | null;
+  running: boolean;
+  elapsed: number | null;
 }) {
   const [expanded, setExpanded] = useState(true);
+  const isLive = payload !== null;
+  const display = error
+    ? JSON.stringify({ error, endpoint: endpoint.path }, null, 2)
+    : (payload ?? endpoint.response);
+  const statusText = running
+    ? "request in flight"
+    : error
+      ? `${elapsed ?? 0} ms · request failed`
+      : isLive
+        ? `${elapsed ?? 0} ms · live response`
+        : "example payload — no request sent";
 
   return (
     <div className="overflow-hidden rounded-[18px] border border-border bg-[oklch(0.19_0.02_292)] shadow-elevated">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
         <div className="flex items-center gap-2.5">
           <StatusBadge
-            tone="success"
-            className="border-success/40 bg-success/15"
+            tone={error ? "warning" : "success"}
+            className={
+              error
+                ? "border-warning/40 bg-warning/15"
+                : "border-success/40 bg-success/15"
+            }
           >
-            {endpoint.status} {endpoint.statusText}
+            {error ? "Error" : `${endpoint.status} ${endpoint.statusText}`}
           </StatusBadge>
           <span className="font-mono text-[11px] text-white/50">
-            {tested ? "142 ms · sample payload" : "awaiting test request"}
+            {statusText}
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <CopyButton
-            value={endpoint.response}
-            ocid="api.response.copy_button"
-          />
+          <CopyButton value={display} ocid="api.response.copy_button" />
           <button
             type="button"
             data-ocid="api.response.expand_button"
@@ -862,18 +956,18 @@ function ResponsePreview({
             </TabsTrigger>
           </TabsList>
           <span className="hidden font-mono text-[10px] uppercase tracking-[0.14em] text-white/40 sm:inline">
-            Demo data
+            {isLive ? "Live response" : error ? "Request error" : "Example"}
           </span>
         </div>
 
         <TabsContent value="json" className="m-0">
           {expanded ? (
             <pre className="max-h-[420px] overflow-auto px-5 py-5 font-mono text-[12.5px] leading-relaxed text-[oklch(0.9_0.02_85)]">
-              <code>{endpoint.response}</code>
+              <code>{display}</code>
             </pre>
           ) : (
             <p className="px-5 py-6 font-mono text-xs text-white/40">
-              Response collapsed — expand to view the sample payload.
+              Response collapsed — expand to view the payload.
             </p>
           )}
         </TabsContent>
@@ -881,7 +975,7 @@ function ResponsePreview({
         <TabsContent value="headers" className="m-0">
           <pre className="max-h-[420px] overflow-auto px-5 py-5 font-mono text-[12.5px] leading-relaxed text-[oklch(0.9_0.02_85)]">
             <code>{`content-type: application/json; charset=utf-8
-x-urja-demo-data: true
+x-urja-data-status: ${isLive ? "live response from the local FastAPI backend" : "example payload (no request sent)"}
 x-urja-source: ${endpoint.source}
 x-urja-reporting-period: ${endpoint.period.replace("Reporting period: ", "")}
 cache-control: no-store`}</code>
@@ -996,8 +1090,9 @@ function Documentation() {
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
               The Urja Open Data API exposes structured energy, RPO, solar,
               jobs, finance, circularity, environmental and forecasting data as
-              JSON over HTTPS. Every payload in this explorer is illustrative
-              demo data.
+              JSON. Running a request here calls the local FastAPI backend and
+              shows its actual response; the example payloads remain available
+              for endpoints you have not run yet.
             </p>
           </Card>
           <Card className="rounded-[18px] border-border bg-card p-6 shadow-subtle">
@@ -1005,10 +1100,11 @@ function Documentation() {
               Base URL
             </h4>
             <p className="mt-2 text-sm text-muted-foreground">
-              All endpoints are served over HTTPS from a single versioned base.
+              All endpoints are served from one versioned base. This local
+              build runs on http://127.0.0.1:8000.
             </p>
             <code className="mt-3 block rounded-xl border border-border bg-muted/50 px-3 py-2 font-mono text-xs text-foreground">
-              https://api.urja.gov.in/api/v1
+              http://127.0.0.1:8000/api/v1
             </code>
           </Card>
         </div>

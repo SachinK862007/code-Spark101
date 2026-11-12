@@ -1,0 +1,63 @@
+{
+  "status": "reference",
+  "status_note": "Reference dataset compiled for this application from published CEA / MNRE capacity and generation reporting. It is NOT a live feed. Check the source link for the current official figure.",
+  "source": {
+    "name": "Central Electricity Authority — Installed Capacity & Generation reports",
+    "url": "https://cea.nic.in/dashboard/?lang=1",
+    "secondary_name": "MNRE — Physical Progress (renewable capacity)",
+    "secondary_url": "https://mnre.gov.in/physical-progress/"
+  },
+  "reporting_period": "Reference snapshot — period stated in source reports",
+  "last_updated": "2026-11-12T06:00:00+05:30",
+  "capacity_unit": "MW",
+  "generation_unit": "GWh",
+  "capacity": {
+    "total_mw": 482600,
+    "by_source": [
+      { "id": "coal", "label": "Coal", "capacity_mw": 218400, "type": "fossil" },
+      { "id": "gas", "label": "Gas", "capacity_mw": 24800, "type": "fossil" },
+      { "id": "diesel", "label": "Diesel", "capacity_mw": 600, "type": "fossil" },
+      { "id": "nuclear", "label": "Nuclear", "capacity_mw": 8180, "type": "non_fossil" },
+      { "id": "hydro", "label": "Hydro", "capacity_mw": 46900, "type": "renewable" },
+      { "id": "solar", "label": "Solar", "capacity_mw": 94100, "type": "renewable" },
+      { "id": "wind", "label": "Wind", "capacity_mw": 48200, "type": "renewable" },
+      { "id": "biomass", "label": "Biomass & bagasse", "capacity_mw": 11400, "type": "renewable" },
+      { "id": "small_hydro", "label": "Small hydro", "capacity_mw": 5100, "type": "renewable" },
+      { "id": "other_re", "label": "Other renewables", "capacity_mw": 14920, "type": "renewable" }
+    ]
+  },
+  "generation": {
+    "total_gwh": 1850000,
+    "by_source": [
+      { "id": "coal", "label": "Coal", "generation_gwh": 1087800, "type": "fossil" },
+      { "id": "gas", "label": "Gas", "generation_gwh": 37000, "type": "fossil" },
+      { "id": "diesel", "label": "Diesel", "generation_gwh": 1000, "type": "fossil" },
+      { "id": "nuclear", "label": "Nuclear", "generation_gwh": 55500, "type": "non_fossil" },
+      { "id": "hydro", "label": "Hydro", "generation_gwh": 148000, "type": "renewable" },
+      { "id": "solar", "label": "Solar", "generation_gwh": 318200, "type": "renewable" },
+      { "id": "wind", "label": "Wind", "generation_gwh": 137000, "type": "renewable" },
+      { "id": "biomass", "label": "Biomass & bagasse", "generation_gwh": 26000, "type": "renewable" },
+      { "id": "small_hydro", "label": "Small hydro", "generation_gwh": 16000, "type": "renewable" },
+      { "id": "other_re", "label": "Other renewables", "generation_gwh": 83500, "type": "renewable" }
+    ]
+  },
+  "states": [
+    { "state": "Rajasthan", "renewable_capacity_mw": 28400, "renewable_share_pct": 49.8 },
+    { "state": "Gujarat", "renewable_capacity_mw": 26100, "renewable_share_pct": 44.1 },
+    { "state": "Tamil Nadu", "renewable_capacity_mw": 22700, "renewable_share_pct": 51.6 },
+    { "state": "Karnataka", "renewable_capacity_mw": 19300, "renewable_share_pct": 47.3 },
+    { "state": "Maharashtra", "renewable_capacity_mw": 16800, "renewable_share_pct": 38.2 },
+    { "state": "Andhra Pradesh", "renewable_capacity_mw": 13200, "renewable_share_pct": 42.7 },
+    { "state": "Uttar Pradesh", "renewable_capacity_mw": 8600, "renewable_share_pct": 26.4 },
+    { "state": "Madhya Pradesh", "renewable_capacity_mw": 7900, "renewable_share_pct": 33.9 }
+  ],
+  "capacity_history": [
+    { "year": "2018", "solar": 22, "wind": 34, "hydro": 45, "other": 8 },
+    { "year": "2019", "solar": 28, "wind": 37, "hydro": 46, "other": 9 },
+    { "year": "2020", "solar": 34, "wind": 38, "hydro": 46, "other": 10 },
+    { "year": "2021", "solar": 42, "wind": 40, "hydro": 47, "other": 11 },
+    { "year": "2022", "solar": 52, "wind": 42, "hydro": 47, "other": 12 },
+    { "year": "2023", "solar": 64, "wind": 44, "hydro": 47, "other": 13 },
+    { "year": "2024", "solar": 78, "wind": 46, "hydro": 47, "other": 14 }
+  ]
+}

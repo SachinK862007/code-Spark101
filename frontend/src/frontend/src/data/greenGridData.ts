@@ -85,7 +85,9 @@ export const DASHBOARD_NAV: DashboardNavGroup[] = [
   {
     heading: "Overview",
     items: [
+      { label: "Home", to: "/" },
       { label: "Dashboard", to: "/dashboard" },
+      { label: "Weather", to: "/weather" },
       { label: "India Energy Map", to: "/map" },
     ],
   },
@@ -93,6 +95,7 @@ export const DASHBOARD_NAV: DashboardNavGroup[] = [
     heading: "Energy Intelligence",
     items: [
       { label: "Energy Mix", to: "/energy-mix", code: "D1" },
+      { label: "Energy Calculations", to: "/energy-calculations", code: "D2" },
       { label: "RPO Compliance", to: "/rpo", code: "D2" },
       { label: "Solar ROI", to: "/solar-roi", code: "D3" },
       { label: "Energy Forecasting", to: "/forecasting", code: "D8" },

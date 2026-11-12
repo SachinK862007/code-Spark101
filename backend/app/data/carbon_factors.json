@@ -1,0 +1,17 @@
+{
+  "version": "urja-carbon-factors-2026-11",
+  "source": {
+    "name": "CEA — CO2 Baseline Database for the Indian Power Sector",
+    "url": "https://cea.nic.in/cdm-co2-baseline-database/?lang=1"
+  },
+  "factors": {
+    "grid_emission_factor_kg_per_kwh": 0.71,
+    "coal_generation_factor_kg_per_kwh": 0.95,
+    "natural_gas_factor_kg_per_kwh": 0.41,
+    "diesel_factor_kg_per_kwh": 0.78
+  },
+  "notes": [
+    "0.71 kg CO2/kWh is a planning-level combined-margin value for the Indian grid. Use the CEA database for a region- and year-specific factor.",
+    "Avoided-emission results are estimates from a configured factor, not measured emissions."
+  ]
+}

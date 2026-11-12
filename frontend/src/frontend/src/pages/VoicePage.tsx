@@ -1,4 +1,5 @@
-import { PageFrame, SampleTag, StatusBadge } from "@/components/shared";
+import { PageFrame, StatusBadge } from "@/components/shared";
+import { useVoiceAssistant } from "@/hooks/useVoiceAssistant";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -13,9 +14,11 @@ import {
   ArrowLeft,
   Check,
   Languages,
+  Loader2,
   Mic,
   MicOff,
   PhoneOff,
+  RotateCcw,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -84,35 +87,6 @@ interface TranscriptEntry {
   text: string;
   sources?: string[];
 }
-
-const TRANSCRIPT: TranscriptEntry[] = [
-  {
-    id: "t1",
-    speaker: "user",
-    time: "09:41:02",
-    text: "What is today's national power demand and how much of it is renewable?",
-  },
-  {
-    id: "t2",
-    speaker: "urja",
-    time: "09:41:05",
-    text: "National demand is currently 198,420 MW. Renewable sources are contributing 34.8% of generation, and grid frequency is stable at 49.98 Hz.",
-    sources: ["Grid-India NLDC", "CEA Daily Report"],
-  },
-  {
-    id: "t3",
-    speaker: "user",
-    time: "09:41:24",
-    text: "Which states are leading on rooftop solar adoption this month?",
-  },
-  {
-    id: "t4",
-    speaker: "urja",
-    time: "09:41:28",
-    text: "Gujarat leads with 44.1% renewable share, followed by Rajasthan at 49.8% of installed capacity. Karnataka has added the most rooftop applications this month.",
-    sources: ["MNRE Dashboard", "State DISCOM filings"],
-  },
-];
 
 /* ------------------------------------------------------------------ */
 /* Central voice orb                                                   */
@@ -196,7 +170,15 @@ function VoiceOrb({ state }: { state: VoiceState }) {
 /* Transcript panel                                                    */
 /* ------------------------------------------------------------------ */
 
-function TranscriptPanel({ className }: { className?: string }) {
+function TranscriptPanel({
+  turns,
+  providerActive,
+  className,
+}: {
+  turns: { id: string; speaker: "user" | "urja"; time: string; text: string; sources?: string[] }[];
+  providerActive: boolean;
+  className?: string;
+}) {
   return (
     <div
       data-ocid="voice.transcript.panel"
@@ -211,17 +193,25 @@ function TranscriptPanel({ className }: { className?: string }) {
             Live transcript
           </h2>
           <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
-            Session 09:41 · 4 turns
+            {turns.length} {turns.length === 1 ? "turn" : "turns"} this session
           </p>
         </div>
-        <SampleTag />
+        <StatusBadge tone={providerActive ? "success" : "warning"}>
+          {providerActive ? "Google voice" : "Browser voice"}
+        </StatusBadge>
       </div>
 
       <ol
         data-ocid="voice.transcript.list"
         className="flex max-h-[26rem] flex-col gap-4 overflow-y-auto px-5 py-5 lg:max-h-[34rem]"
       >
-        {TRANSCRIPT.map((entry) => (
+        {turns.length === 0 && (
+          <li className="rounded-2xl border border-dashed border-border bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
+            Nothing is being recorded yet. Tap the microphone and speak, or use the
+            Ask page to type a question.
+          </li>
+        )}
+        {turns.map((entry) => (
           <li
             key={entry.id}
             data-ocid={`voice.transcript.item.${entry.id}`}
@@ -237,7 +227,7 @@ function TranscriptPanel({ className }: { className?: string }) {
             </div>
             <div
               className={cn(
-                "max-w-[92%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
+                "max-w-[92%] whitespace-pre-line rounded-2xl px-4 py-3 text-sm leading-relaxed",
                 entry.speaker === "user"
                   ? "rounded-br-sm bg-primary text-primary-foreground"
                   : "rounded-bl-sm border border-border bg-muted/50 text-foreground",
@@ -269,14 +259,36 @@ function TranscriptPanel({ className }: { className?: string }) {
 /* ------------------------------------------------------------------ */
 
 export default function VoicePage() {
-  const [state, setState] = useState<VoiceState>("ready");
-  const [muted, setMuted] = useState(false);
+  const [preview, setPreview] = useState<VoiceState | null>(null);
   const [speakerOn, setSpeakerOn] = useState(true);
   const [language, setLanguage] = useState("en");
+  const voice = useVoiceAssistant(language);
 
+  // A tab click previews a state; any real interaction takes over again.
+  const state: VoiceState = preview ?? voice.state;
   const activeMeta =
     VOICE_STATES.find((item) => item.id === state) ?? VOICE_STATES[0];
   const isEnded = state === "ended";
+  const isListening = state === "listening";
+
+  function handleMic() {
+    setPreview(null);
+    if (isEnded) voice.resume();
+    if (voice.recording) voice.stopListening();
+    else void voice.startListening();
+  }
+
+  function handleEnd() {
+    setPreview(null);
+    setSpeakerOn(false);
+    voice.endSession();
+  }
+
+  function handleNewSession() {
+    voice.reset();
+    setPreview(null);
+    setSpeakerOn(true);
+  }
 
   return (
     <PageFrame className="max-w-[1440px]">
@@ -294,9 +306,11 @@ export default function VoicePage() {
             service guidance and live energy intelligence.
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <SampleTag />
+        <div className="flex flex-col items-start gap-2 md:items-end">
           <StatusBadge tone={activeMeta.tone}>{activeMeta.label}</StatusBadge>
+          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+            {voice.providerActive ? "Google Cloud voice" : "Browser speech fallback"}
+          </span>
         </div>
       </div>
 
@@ -312,7 +326,7 @@ export default function VoicePage() {
               type="button"
               data-ocid={`voice.state.tab.${item.id}`}
               aria-pressed={state === item.id}
-              onClick={() => setState(item.id)}
+              onClick={() => setPreview(item.id)}
               className={cn(
                 "rounded-full border px-3.5 py-1.5 text-sm font-medium transition-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 state === item.id
@@ -349,19 +363,18 @@ export default function VoicePage() {
             <button
               type="button"
               data-ocid="voice.mic_button"
-              aria-pressed={!muted}
-              aria-label={muted ? "Unmute microphone" : "Mute microphone"}
-              onClick={() => {
-                setMuted((prev) => !prev);
-                if (state === "ready") setState("listening");
-              }}
+              aria-pressed={isListening}
+              aria-label={voice.recording ? "Stop listening" : "Start listening"}
+              onClick={handleMic}
               className={cn(
                 "flex size-20 items-center justify-center rounded-full text-primary-foreground shadow-elevated transition-smooth hover:-translate-y-0.5 hover:shadow-floating focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                muted ? "bg-muted-foreground" : "bg-primary",
+                isListening ? "bg-destructive" : "bg-primary",
               )}
             >
-              {muted ? (
+              {voice.recording ? (
                 <MicOff className="size-8" aria-hidden="true" />
+              ) : state === "processing" ? (
+                <Loader2 className="size-8 animate-spin" aria-hidden="true" />
               ) : (
                 <Mic className="size-8" aria-hidden="true" />
               )}
@@ -370,7 +383,7 @@ export default function VoicePage() {
             <button
               type="button"
               data-ocid="voice.end_button"
-              onClick={() => setState("ended")}
+              onClick={handleEnd}
               className="flex size-14 items-center justify-center rounded-full border border-destructive/30 bg-destructive/10 text-destructive transition-smooth hover:bg-destructive/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               aria-label="End conversation"
             >
@@ -381,7 +394,10 @@ export default function VoicePage() {
               type="button"
               data-ocid="voice.speaker_toggle"
               aria-pressed={speakerOn}
-              onClick={() => setSpeakerOn((prev) => !prev)}
+              onClick={() => {
+                if (speakerOn) voice.stopPlayback();
+                setSpeakerOn((prev) => !prev);
+              }}
               className={cn(
                 "flex size-14 items-center justify-center rounded-full border transition-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 speakerOn
@@ -435,20 +451,45 @@ export default function VoicePage() {
             </Button>
           </div>
 
+          {voice.error && (
+            <p
+              role="alert"
+              data-ocid="voice.error_state"
+              className="mt-6 w-full rounded-2xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+            >
+              {voice.error}
+            </p>
+          )}
+
           {/* Ended confirmation */}
           {isEnded && (
             <div
               data-ocid="voice.ended_state"
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground"
+              className="mt-6 flex w-full flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-card px-4 py-4 text-sm text-muted-foreground sm:flex-row"
             >
-              <Check className="size-4 text-success" aria-hidden="true" />
-              Conversation ended. Your transcript is saved for this session.
+              <span className="flex items-center gap-2">
+                <Check className="size-4 text-success" aria-hidden="true" />
+                Conversation ended. Audio was never stored on the server.
+              </span>
+              <button
+                type="button"
+                data-ocid="voice.new_session_button"
+                onClick={handleNewSession}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-smooth hover:border-primary/40 hover:bg-secondary"
+              >
+                <RotateCcw className="size-4" aria-hidden="true" />
+                Start a new interaction
+              </button>
             </div>
           )}
         </section>
 
         {/* Transcript — side panel on desktop, beneath orb on mobile */}
-        <TranscriptPanel className="lg:sticky lg:top-24 lg:self-start" />
+        <TranscriptPanel
+          turns={voice.turns}
+          providerActive={voice.providerActive}
+          className="lg:sticky lg:top-24 lg:self-start"
+        />
       </div>
     </PageFrame>
   );

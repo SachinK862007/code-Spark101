@@ -1,0 +1,16 @@
+{
+  "data_status": "reference",
+  "source": {
+    "name": "Central Pollution Control Board — National Air Quality Monitoring Programme",
+    "url": "https://cpcb.nic.in/",
+    "note": "Air-quality values in this dataset are illustrative regional indicators, not live CPCB readings. Configure an approved air-quality provider for measured values."
+  },
+  "regional_indicators": [
+    { "region": "Rajasthan", "solar_capacity_mw": 28400, "co2_avoided_mt_per_year": 26.4, "air_quality_index": 118 },
+    { "region": "Gujarat", "solar_capacity_mw": 26100, "co2_avoided_mt_per_year": 24.1, "air_quality_index": 96 },
+    { "region": "Tamil Nadu", "solar_capacity_mw": 22700, "co2_avoided_mt_per_year": 21.8, "air_quality_index": 74 },
+    { "region": "Karnataka", "solar_capacity_mw": 19300, "co2_avoided_mt_per_year": 18.9, "air_quality_index": 82 },
+    { "region": "Maharashtra", "solar_capacity_mw": 16800, "co2_avoided_mt_per_year": 15.2, "air_quality_index": 104 },
+    { "region": "Andhra Pradesh", "solar_capacity_mw": 13200, "co2_avoided_mt_per_year": 12.7, "air_quality_index": 88 }
+  ]
+}

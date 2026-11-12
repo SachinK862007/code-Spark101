@@ -7,6 +7,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { ApiError } from "@/services/apiClient";
+import { urjaApi } from "@/services/urjaApi";
+import type { AskResponse } from "@/services/types";
 import {
   ArrowUpRight,
   Building2,
@@ -20,12 +23,14 @@ import {
   MapPin,
   Mic,
   Phone,
+  Loader2,
   RotateCcw,
   Send,
   Sparkles,
   TrendingUp,
   Volume2,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { type FormEvent, useState } from "react";
 
 /* ------------------------------------------------------------------ */
@@ -691,11 +696,150 @@ function InformationSourceCard() {
 /* Composer                                                            */
 /* ------------------------------------------------------------------ */
 
-function Composer() {
+/**
+ * Live answer — rendered from the `/api/v1/ask` response. The answer text is
+ * composed by the backend from retrieved snippets, and every source is linked.
+ */
+function LiveAnswer({
+  response,
+  loading,
+  error,
+}: {
+  response: AskResponse | null;
+  loading: boolean;
+  error: string | null;
+}) {
+  if (loading) {
+    return (
+      <div className="mx-auto w-full max-w-[840px] px-4 pt-10 md:px-6 md:pt-14">
+        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+          Searching official sources…
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto w-full max-w-[840px] px-4 pt-10 md:px-6 md:pt-14">
+        <div
+          role="alert"
+          className="rounded-[18px] border border-destructive/25 bg-destructive/5 p-5 text-sm text-destructive"
+        >
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  if (!response) return null;
+
+  return (
+    <div className="mx-auto w-full max-w-[840px] px-4 pt-10 md:px-6 md:pt-14">
+      <div className="flex flex-col items-end gap-3">
+        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          You asked
+        </span>
+        <div className="max-w-[85%] rounded-[20px] rounded-tr-md border border-border bg-muted/60 px-5 py-4">
+          <p className="text-sm leading-relaxed text-foreground">
+            {response.question}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-10 flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <Sparkles className="size-4" aria-hidden="true" />
+          </span>
+          <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">
+            Urja
+          </span>
+          <StatusBadge tone={response.sources.length ? "success" : "warning"}>
+            {response.sources.length
+              ? `${response.official_source_count}/${response.sources.length} official`
+              : "No sources"}
+          </StatusBadge>
+          <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+            {response.provider} · {response.cached ? "cached" : "fresh"}
+          </span>
+        </div>
+
+        <div className="space-y-3 text-sm leading-relaxed text-foreground">
+          {response.answer.split("\n\n").map((paragraph) => (
+            <p key={paragraph.slice(0, 48)} className="whitespace-pre-line">
+              {paragraph}
+            </p>
+          ))}
+        </div>
+
+        {response.sources.length > 0 && (
+          <div className="mt-2 space-y-3">
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              Sources
+            </p>
+            {response.sources.map((source) => (
+              <div
+                key={source.url}
+                className="rounded-[14px] border border-border bg-card p-4 shadow-subtle"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href={source.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    {source.title}
+                    <ExternalLink className="size-3.5" aria-hidden="true" />
+                  </a>
+                  <StatusBadge tone={source.is_official ? "success" : "neutral"}>
+                    {source.is_official ? "Official" : "Other"}
+                  </StatusBadge>
+                </div>
+                <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                  {source.source_name}
+                  {source.retrieved_at
+                    ? ` · retrieved ${new Date(source.retrieved_at).toLocaleString("en-IN")}`
+                    : ""}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {source.snippet || "No snippet was returned for this source."}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Answers are direct excerpts from the linked pages, composed by the
+          backend. Verify any figure against the source before relying on it.
+          {response.context_used
+            ? " Your previous question was used for context."
+            : ""}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function Composer({
+  onSubmit,
+  onReset,
+  loading,
+}: {
+  onSubmit: (question: string) => void;
+  onReset: () => void;
+  loading: boolean;
+}) {
   const [draft, setDraft] = useState("");
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const question = draft.trim();
+    if (!question || loading) return;
+    onSubmit(question);
     setDraft("");
   }
 
@@ -720,21 +864,26 @@ function Composer() {
               placeholder="Ask about services, schemes, offices or energy…"
               className="max-h-40 min-h-11 flex-1 resize-none bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
             />
-            <button
-              type="button"
+            <Link
+              to="/voice"
               data-ocid="conversation.composer.mic_button"
-              aria-label="Use microphone"
+              aria-label="Use voice instead"
               className="inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground transition-smooth hover:border-primary/40 hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <Mic className="size-5" aria-hidden="true" />
-            </button>
+            </Link>
             <button
               type="submit"
               data-ocid="conversation.composer.send_button"
               aria-label="Send message"
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-smooth hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              disabled={loading || draft.trim().length === 0}
+              className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-smooth hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              <Send className="size-5" aria-hidden="true" />
+              {loading ? (
+                <Loader2 className="size-5 animate-spin" aria-hidden="true" />
+              ) : (
+                <Send className="size-5" aria-hidden="true" />
+              )}
             </button>
           </div>
         </form>
@@ -752,13 +901,14 @@ function Composer() {
             <button
               type="button"
               data-ocid="conversation.composer.start_over_button"
+              onClick={onReset}
               className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-medium text-muted-foreground transition-smooth hover:border-primary/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <RotateCcw className="size-4" aria-hidden="true" />
               Start over
             </button>
           </div>
-          <SampleTag />
+          <StatusBadge tone="primary">Backend retrieval</StatusBadge>
         </div>
       </div>
     </div>
@@ -770,13 +920,54 @@ function Composer() {
 /* ------------------------------------------------------------------ */
 
 export default function ConversationPage() {
+  const [live, setLive] = useState<AskResponse | null>(null);
+  const [previous, setPrevious] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function ask(question: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await urjaApi.ask({
+        question,
+        previous_question: previous,
+      });
+      setLive(response);
+      setPrevious(response.question);
+    } catch (caught) {
+      setLive(null);
+      setError(
+        caught instanceof ApiError
+          ? caught.message
+          : "The question could not be answered.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function reset() {
+    setLive(null);
+    setError(null);
+    setPrevious(null);
+  }
+
+  const hasLiveTurn = Boolean(live || loading || error);
+
   return (
     <div
       data-ocid="conversation.page"
       className="flex min-h-[calc(100dvh-4rem)] flex-col"
     >
       <div className="flex-1">
-        <div className="mx-auto w-full max-w-[840px] px-4 py-10 md:px-6 md:py-16">
+        <LiveAnswer response={live} loading={loading} error={error} />
+        <div
+          className={cn(
+            "mx-auto w-full max-w-[840px] px-4 py-10 md:px-6 md:py-16",
+            hasLiveTurn && "hidden",
+          )}
+        >
           {/* User turn */}
           <div className="flex flex-col items-end gap-3">
             <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -845,7 +1036,7 @@ export default function ConversationPage() {
         </div>
       </div>
 
-      <Composer />
+      <Composer onSubmit={ask} onReset={reset} loading={loading} />
     </div>
   );
 }

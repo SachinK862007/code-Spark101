@@ -1,0 +1,28 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.json.key
+service-account*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local data / logs
+*.db
+*.db-journal
+*.sqlite3
+logs/
+*.log
+
+# OS
+Thumbs.db
+.DS_Store
