@@ -1,0 +1,27 @@
+{
+  "overview": "India Green Grid is a role-based energy decision-support dashboard that unifies India's renewable energy data into dashboards, calculators, and stakeholder portals.",
+  "features": [
+    "Persistent sidebar dashboard shell with a stakeholder role selector",
+    "Overview dashboard with KPI cards, energy mix donut and trend charts",
+    "Energy mix dashboard with state, year and source filters",
+    "RPO compliance tracker with a calculator and configurable policy rates",
+    "Rooftop solar ROI calculator with subsidy, payback and CO2 estimates",
+    "Green jobs board with search, filters and job detail view",
+    "Green finance comparison engine for loans, bonds and government schemes",
+    "Circular economy module with recycler directory and traceability form",
+    "Environmental impact dashboard with air quality and emissions indicators",
+    "Energy forecasting and storage planner with weather panel",
+    "Role-based stakeholder portals for five stakeholder groups",
+    "Data sources and provenance screen with a pipeline visual",
+    "API explorer with sample endpoints and example responses"
+  ],
+  "category": "energy-dashboard",
+  "tags": [
+    "renewable-energy",
+    "india",
+    "dashboard",
+    "data-visualization",
+    "decision-support"
+  ],
+  "last_updated": "2026-11-12T06:51:13.099Z"
+}

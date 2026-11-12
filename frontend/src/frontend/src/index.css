@@ -1,0 +1,204 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Fraunces";
+  src: url("/assets/fonts/Fraunces.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "General Sans";
+  src: url("/assets/fonts/GeneralSans.woff2") format("woff2");
+  font-weight: 200 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/assets/fonts/JetBrainsMono.woff2") format("woff2");
+  font-weight: 100 800;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --font-display: "Fraunces", serif;
+    --font-body: "General Sans", sans-serif;
+    --font-mono: "JetBrains Mono", monospace;
+    --radius: 1.125rem;
+
+    /* Warm cream canvas, ink text */
+    --background: 0.975 0.006 85;
+    --foreground: 0.22 0.012 60;
+    --card: 1.0 0 0;
+    --card-foreground: 0.22 0.012 60;
+    --popover: 1.0 0 0;
+    --popover-foreground: 0.22 0.012 60;
+
+    /* Deep violet brand */
+    --primary: 0.52 0.19 292;
+    --primary-foreground: 0.985 0.004 292;
+
+    /* Secondary violet tint */
+    --secondary: 0.95 0.018 292;
+    --secondary-foreground: 0.34 0.09 292;
+    --muted: 0.955 0.008 85;
+    --muted-foreground: 0.52 0.014 70;
+
+    /* Marigold accent, used sparingly */
+    --accent: 0.78 0.14 72;
+    --accent-foreground: 0.26 0.05 72;
+
+    --destructive: 0.55 0.19 25;
+    --destructive-foreground: 0.985 0.004 25;
+    --success: 0.55 0.13 152;
+    --success-foreground: 0.985 0.004 152;
+    --warning: 0.66 0.13 68;
+    --warning-foreground: 0.985 0.004 68;
+
+    --border: 0.905 0.012 80;
+    --input: 0.905 0.012 80;
+    --ring: 0.52 0.19 292;
+
+    --chart-1: 0.52 0.19 292;
+    --chart-2: 0.78 0.14 72;
+    --chart-3: 0.55 0.13 152;
+    --chart-4: 0.62 0.14 245;
+    --chart-5: 0.62 0.16 25;
+
+    --sidebar: 0.985 0.006 85;
+    --sidebar-foreground: 0.22 0.012 60;
+    --sidebar-primary: 0.52 0.19 292;
+    --sidebar-primary-foreground: 0.985 0.004 292;
+    --sidebar-accent: 0.95 0.018 292;
+    --sidebar-accent-foreground: 0.34 0.09 292;
+    --sidebar-border: 0.905 0.012 80;
+    --sidebar-ring: 0.52 0.19 292;
+
+    /* Gradient + motion tokens */
+    --gradient-primary: linear-gradient(
+      135deg,
+      oklch(0.52 0.19 292),
+      oklch(0.6 0.17 305)
+    );
+    --gradient-subtle: linear-gradient(
+      180deg,
+      oklch(0.975 0.008 85),
+      oklch(0.955 0.01 292)
+    );
+    --gradient-warm: linear-gradient(
+      120deg,
+      oklch(0.78 0.14 72),
+      oklch(0.72 0.15 55)
+    );
+    --shadow-subtle-color: 0.22 0.012 60;
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark {
+    --background: 0.16 0.014 292;
+    --foreground: 0.94 0.008 85;
+    --card: 0.2 0.018 292;
+    --card-foreground: 0.94 0.008 85;
+    --popover: 0.2 0.018 292;
+    --popover-foreground: 0.94 0.008 85;
+
+    --primary: 0.68 0.16 292;
+    --primary-foreground: 0.16 0.014 292;
+
+    --secondary: 0.25 0.025 292;
+    --secondary-foreground: 0.88 0.01 292;
+    --muted: 0.25 0.02 292;
+    --muted-foreground: 0.62 0.014 85;
+
+    --accent: 0.78 0.14 72;
+    --accent-foreground: 0.2 0.03 72;
+
+    --destructive: 0.62 0.18 25;
+    --destructive-foreground: 0.96 0.006 25;
+    --success: 0.66 0.13 152;
+    --success-foreground: 0.16 0.014 152;
+    --warning: 0.72 0.13 68;
+    --warning-foreground: 0.16 0.014 68;
+
+    --border: 0.3 0.02 292;
+    --input: 0.3 0.02 292;
+    --ring: 0.68 0.16 292;
+
+    --chart-1: 0.68 0.16 292;
+    --chart-2: 0.78 0.14 72;
+    --chart-3: 0.66 0.13 152;
+    --chart-4: 0.68 0.13 245;
+    --chart-5: 0.66 0.15 25;
+
+    --sidebar: 0.18 0.016 292;
+    --sidebar-foreground: 0.94 0.008 85;
+    --sidebar-primary: 0.68 0.16 292;
+    --sidebar-primary-foreground: 0.16 0.014 292;
+    --sidebar-accent: 0.25 0.025 292;
+    --sidebar-accent-foreground: 0.88 0.01 292;
+    --sidebar-border: 0.3 0.02 292;
+    --sidebar-ring: 0.68 0.16 292;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    font-feature-settings: "ss01", "cv01";
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+    letter-spacing: -0.02em;
+  }
+}
+
+@layer utilities {
+  .transition-smooth {
+    transition: var(--transition-smooth);
+  }
+
+  .bg-gradient-primary {
+    background-image: var(--gradient-primary);
+  }
+
+  .bg-gradient-subtle {
+    background-image: var(--gradient-subtle);
+  }
+
+  .bg-gradient-warm {
+    background-image: var(--gradient-warm);
+  }
+
+  .text-gradient-primary {
+    background-image: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .shadow-subtle {
+    box-shadow: 0 1px 2px oklch(var(--shadow-subtle-color) / 0.04), 0 4px 12px
+      oklch(var(--shadow-subtle-color) / 0.05);
+  }
+
+  .shadow-elevated {
+    box-shadow: 0 2px 4px oklch(var(--shadow-subtle-color) / 0.05), 0 12px 32px
+      oklch(var(--shadow-subtle-color) / 0.09);
+  }
+
+  .shadow-floating {
+    box-shadow: 0 8px 16px oklch(var(--shadow-subtle-color) / 0.06), 0 24px 56px
+      oklch(var(--shadow-subtle-color) / 0.12);
+  }
+
+  .hairline {
+    box-shadow: inset 0 0 0 1px oklch(var(--border));
+  }
+}
