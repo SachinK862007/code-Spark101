@@ -15,7 +15,10 @@ export interface NavItem {
 }
 
 export const PRIMARY_NAV: NavItem[] = [
+  { label: "Home", to: "/" },
   { label: "Ask", to: "/ask" },
+  { label: "Weather", to: "/weather" },
+  { label: "Calculators", to: "/energy-calculations" },
   { label: "Explore Map", to: "/map" },
   { label: "Public Services", to: "/services" },
   { label: "Energy", to: "/energy" },

@@ -1,0 +1,18 @@
+# URJA — FastAPI backend dependencies
+# Tested on Python 3.12 (see README for why 3.12 is the recommended local
+# interpreter on this machine: Windows Application Control blocks the cp314
+# build of pydantic-core / SQLAlchemy compiled extensions).
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+SQLAlchemy==2.0.36
+pydantic==2.10.4
+python-dotenv==1.0.1
+python-multipart==0.0.20
+httpx==0.28.1
+pandas==2.2.3
+numpy==2.2.1
+pytest==8.3.4
+
+# Google Cloud voice is optional and installed separately so the core backend
+# installs without grpc binaries:
+#   pip install -r requirements-voice.txt

@@ -1,0 +1,81 @@
+{
+  "disclaimer": "Scheme details are summarised from official sources. Interest rates, caps and eligibility change; always confirm on the linked official page before applying.",
+  "data_status": "reference",
+  "products": [
+    {
+      "id": "pm-surya-ghar-cfa",
+      "name": "PM Surya Ghar — Residential Rooftop CFA",
+      "provider": "Ministry of New & Renewable Energy",
+      "type": "Subsidy",
+      "instrument": "Capital subsidy",
+      "eligible_for": "Residential households installing grid-connected rooftop solar",
+      "interest_rate": null,
+      "rate_note": "Not applicable — capital subsidy, not a loan",
+      "tenure_note": "One-time disbursal after installation and inspection",
+      "amount_note": "₹30,000/kW for the first 2 kW and ₹18,000/kW for the third kW, capped at ₹78,000",
+      "source_name": "National Portal for Rooftop Solar",
+      "source_url": "https://solarrooftop.gov.in/",
+      "updated_at": "2026-11-01"
+    },
+    {
+      "id": "ireda-renewable-loan",
+      "name": "IREDA Renewable Energy Term Loan",
+      "provider": "Indian Renewable Energy Development Agency",
+      "type": "Loan",
+      "instrument": "Project term loan",
+      "eligible_for": "Renewable generation, manufacturing and energy-efficiency projects",
+      "interest_rate": null,
+      "rate_note": "Rate is set per project by IREDA; not published as a single figure",
+      "tenure_note": "Project-specific, typically up to 15 years",
+      "amount_note": "Project-specific appraisal",
+      "source_name": "IREDA",
+      "source_url": "https://www.ireda.in/",
+      "updated_at": "2026-09-12"
+    },
+    {
+      "id": "sbi-surya-ghar-loan",
+      "name": "SBI Surya Ghar Solar Loan",
+      "provider": "State Bank of India",
+      "type": "Loan",
+      "instrument": "Retail rooftop solar loan",
+      "eligible_for": "Residential customers of the bank, subject to credit assessment",
+      "interest_rate": null,
+      "rate_note": "Rate depends on the bank's prevailing card rate and credit assessment",
+      "tenure_note": "Up to 10 years (confirm with the bank)",
+      "amount_note": "Collateral-free up to the bank's published limit for this product",
+      "source_name": "State Bank of India",
+      "source_url": "https://sbi.co.in/",
+      "updated_at": "2026-08-30"
+    },
+    {
+      "id": "nabard-green-finance",
+      "name": "NABARD Green Finance Support",
+      "provider": "NABARD",
+      "type": "Refinance",
+      "instrument": "Refinance to eligible institutions",
+      "eligible_for": "Banks and cooperative institutions financing rural renewable projects",
+      "interest_rate": null,
+      "rate_note": "Refinance rate is communicated to eligible institutions",
+      "tenure_note": "Scheme-specific",
+      "amount_note": "Scheme-specific",
+      "source_name": "NABARD",
+      "source_url": "https://www.nabard.org/",
+      "updated_at": "2026-07-19"
+    },
+    {
+      "id": "green-bond-framework",
+      "name": "Sovereign Green Bond Framework",
+      "provider": "Government of India",
+      "type": "Market instrument",
+      "instrument": "Sovereign green bonds",
+      "eligible_for": "Institutional investors in notified issuances",
+      "interest_rate": null,
+      "rate_note": "Auction-determined coupon",
+      "tenure_note": "Per issuance",
+      "amount_note": "Per issuance",
+      "source_name": "Ministry of Finance",
+      "source_url": "https://www.finmin.nic.in/",
+      "updated_at": "2026-06-14"
+    }
+  ]
+}

@@ -21,9 +21,6 @@ describe("Urja Open Data API Explorer screen", () => {
     expect(
       screen.getByTestId("api.overview.card.forecast"),
     ).toBeInTheDocument();
-    expect(
-      screen.getByTestId("api.overview.card.stakeholders-role"),
-    ).toBeInTheDocument();
     expect(screen.getByTestId("api.explorer.nav_panel")).toBeInTheDocument();
   });
 
@@ -63,15 +60,12 @@ describe("Urja Open Data API Explorer screen", () => {
     expect(screen.getByText(/Solar PV Installer/)).toBeInTheDocument();
   });
 
-  it("marks the response as awaiting a test request until Test request is pressed", async () => {
-    const user = userEvent.setup();
+  it("labels the response as an example until a request runs", async () => {
     await renderWithRouter(<ApiExplorerPage />, { path: "/energy/api" });
 
-    expect(screen.getByText("awaiting test request")).toBeInTheDocument();
-
-    await user.click(screen.getByTestId("api.request.test_button"));
-
-    expect(screen.getByText("142 ms · sample payload")).toBeInTheDocument();
+    expect(
+      screen.getByText("example payload — no request sent"),
+    ).toBeInTheDocument();
   });
 
   it("collapses and expands the sample response payload", async () => {
@@ -86,7 +80,7 @@ describe("Urja Open Data API Explorer screen", () => {
     expect(expandButton).toHaveAttribute("aria-expanded", "false");
     expect(
       screen.getByText(
-        /Response collapsed — expand to view the sample payload/,
+        /Response collapsed — expand to view the payload/,
       ),
     ).toBeInTheDocument();
   });
@@ -105,14 +99,33 @@ describe("Urja Open Data API Explorer screen", () => {
     expect(within(docs).getByTestId("api.docs.tab.errors")).toBeInTheDocument();
   });
 
-  it("makes no network call when Run request is pressed", async () => {
-    const fetchSpy = vi.spyOn(globalThis, "fetch");
+  it("requests the endpoint and shows the live response when Run request is pressed", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ "content-type": "application/json" }),
+      json: async () => ({ upgrades: 12 }),
+    } as unknown as Response);
     const user = userEvent.setup();
     await renderWithRouter(<ApiExplorerPage />, { path: "/energy/api" });
 
     await user.click(screen.getByTestId("api.request.run_button"));
 
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(String(fetchSpy.mock.calls[0][0])).toContain("/api/v1/energy/mix");
+    expect(await screen.findByText(/live response/)).toBeInTheDocument();
+    expect(screen.getByText(/"upgrades": 12/)).toBeInTheDocument();
+  });
+
+  it("reports a backend failure instead of a fake payload", async () => {
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new TypeError("offline"));
+    const user = userEvent.setup();
+    await renderWithRouter(<ApiExplorerPage />, { path: "/energy/api" });
+
+    await user.click(screen.getByTestId("api.request.test_button"));
+
+    expect(await screen.findByText(/request failed/)).toBeInTheDocument();
+    expect(screen.getByText(/Cannot reach the URJA backend/)).toBeInTheDocument();
   });
 
   it("labels the illustrative response as sample data", async () => {

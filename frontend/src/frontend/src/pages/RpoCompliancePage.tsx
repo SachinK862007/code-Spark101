@@ -1,7 +1,5 @@
 import {
-  ChartContainer,
   PageFrame,
-  SampleTag,
   SectionHeading,
   SourceBadge,
   StatusBadge,
@@ -10,7 +8,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -18,6 +15,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ApiError } from "@/services/apiClient";
+import { urjaApi } from "@/services/urjaApi";
+import type {
+  RpoCalculationResponse,
+  RpoEntityCategory,
+  RpoObligationCategory,
+  RpoTargetsResponse,
+} from "@/services/types";
 import { cn } from "@/lib/utils";
 import {
   AlertTriangle,
@@ -28,50 +33,32 @@ import {
   Download,
   History,
   Info,
-  Minus,
-  Pencil,
+  Loader2,
   RotateCcw,
   Save,
   ShieldCheck,
   TrendingUp,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 /* ------------------------------------------------------------------ */
-/* DEMO DATA — static illustrative sample data, never fetched          */
+/* Selection options                                                   */
 /* ------------------------------------------------------------------ */
 
-const DEMO_SOURCE = "MoP RPO Trajectory (illustrative)";
-const DEMO_PERIOD = "Compliance year FY 2025-26";
-
-const ENTITY_CATEGORIES = [
+const ENTITY_CATEGORIES: RpoEntityCategory[] = [
   "DISCOM",
   "Captive Consumer",
   "Open Access Consumer",
   "Other eligible entity",
-] as const;
+];
 
-const OBLIGATION_CATEGORIES = [
-  "Solar + Non-Solar (combined)",
-  "Solar only",
-  "Non-Solar only",
-  "Wind + Hydro",
-] as const;
-
-const POLICY_TYPES = [
-  "MoP national trajectory",
-  "State regulator (SERC) order",
-  "Draft / proposed",
-] as const;
-
-const COMPLIANCE_YEARS = [
-  "2025",
-  "2026",
-  "2027",
-  "2028",
-  "2029",
-  "2030",
-] as const;
+const OBLIGATIONS: { value: RpoObligationCategory; label: string }[] = [
+  { value: "total", label: "Total renewable (combined)" },
+  { value: "wind", label: "Wind sub-target" },
+  { value: "hydro", label: "Hydro sub-target" },
+  { value: "distributed_re", label: "Distributed RE sub-target" },
+  { value: "other", label: "Other renewable sub-target" },
+];
 
 const STATE_OPTIONS = [
   "Rajasthan",
@@ -82,79 +69,51 @@ const STATE_OPTIONS = [
   "Andhra Pradesh",
   "Uttar Pradesh",
   "Delhi",
-] as const;
-
-/** Illustrative baseline trajectory — 29.91% (FY26) rising to 43.33% (FY30). */
-const RPO_TRAJECTORY: { year: string; target: number }[] = [
-  { year: "2025", target: 29.91 },
-  { year: "2026", target: 32.5 },
-  { year: "2027", target: 35.2 },
-  { year: "2028", target: 38.1 },
-  { year: "2029", target: 40.7 },
-  { year: "2030", target: 43.33 },
+  "Madhya Pradesh",
+  "Telangana",
 ];
 
-interface PolicyRate {
+const FALLBACK_YEARS = [
+  "2024-25",
+  "2025-26",
+  "2026-27",
+  "2027-28",
+  "2028-29",
+  "2029-30",
+];
+
+interface FormState {
+  entityName: string;
+  category: RpoEntityCategory;
+  state: string;
   year: string;
-  solar: number;
-  nonSolar: number;
-  total: number;
+  consumption: string;
+  procurement: string;
+  certificates: string;
+  obligation: RpoObligationCategory;
 }
 
-const DEFAULT_POLICY_RATES: PolicyRate[] = [
-  { year: "2025", solar: 8.1, nonSolar: 21.81, total: 29.91 },
-  { year: "2026", solar: 9.2, nonSolar: 23.3, total: 32.5 },
-  { year: "2027", solar: 10.4, nonSolar: 24.8, total: 35.2 },
-  { year: "2028", solar: 11.7, nonSolar: 26.4, total: 38.1 },
-  { year: "2029", solar: 13.1, nonSolar: 27.6, total: 40.7 },
-  { year: "2030", solar: 14.6, nonSolar: 28.73, total: 43.33 },
-];
-
-interface AnnualHistoryRow {
-  year: string;
-  target: number;
-  achieved: number;
+interface ComplianceResult {
+  targetRate: number;
+  required: number;
+  actual: number;
+  compliancePct: number;
+  gap: number;
+  remaining: number;
+  surplus: number;
   status: "Compliant" | "Shortfall" | "Surplus";
   tone: StatusTone;
+  notes: string[];
+  certificatesCounted: number;
+  certificatesCapped: number;
+  effectiveFrom: string | null;
+  effectiveTo: string | null;
+  verified: boolean;
+  sourceUrl: string;
+  policyVersion: string;
+  framework: string;
+  obligationLabel: string;
 }
-
-const ANNUAL_HISTORY: AnnualHistoryRow[] = [
-  {
-    year: "2021-22",
-    target: 21.0,
-    achieved: 19.4,
-    status: "Shortfall",
-    tone: "danger",
-  },
-  {
-    year: "2022-23",
-    target: 24.0,
-    achieved: 23.1,
-    status: "Shortfall",
-    tone: "danger",
-  },
-  {
-    year: "2023-24",
-    target: 26.5,
-    achieved: 27.2,
-    status: "Surplus",
-    tone: "success",
-  },
-  {
-    year: "2024-25",
-    target: 28.4,
-    achieved: 29.6,
-    status: "Surplus",
-    tone: "success",
-  },
-  {
-    year: "2025-26",
-    target: 29.91,
-    achieved: 31.2,
-    status: "Compliant",
-    tone: "success",
-  },
-];
 
 interface SavedCalculation {
   id: string;
@@ -166,99 +125,57 @@ interface SavedCalculation {
   tone: StatusTone;
 }
 
-const SEED_HISTORY: SavedCalculation[] = [
-  {
-    id: "calc-1",
-    entity: "Jaipur Vidyut Vitran Nigam",
-    year: "2025",
-    category: "DISCOM",
-    compliance: 104.3,
-    status: "Compliant",
-    tone: "success",
-  },
-  {
-    id: "calc-2",
-    entity: "Rajasthan Spinning Mills",
-    year: "2025",
-    category: "Captive Consumer",
-    compliance: 88.6,
-    status: "Shortfall",
-    tone: "danger",
-  },
-];
-
-/* ------------------------------------------------------------------ */
-/* Calculation model (illustrative, in-memory only)                    */
-/* ------------------------------------------------------------------ */
-
-interface FormState {
-  entityName: string;
-  category: string;
-  state: string;
-  year: string;
-  consumption: string;
-  procurement: string;
-  obligation: string;
-}
-
-interface ComplianceResult {
-  targetRate: number;
-  required: number;
-  actual: number;
-  compliancePct: number;
-  gap: number;
-  remaining: number;
-  status: "Compliant" | "Shortfall" | "Surplus";
-  tone: StatusTone;
-}
-
 const INITIAL_FORM: FormState = {
   entityName: "Jaipur Vidyut Vitran Nigam",
   category: "DISCOM",
   state: "Rajasthan",
-  year: "2025",
+  year: "2025-26",
   consumption: "4200000",
   procurement: "1310000",
-  obligation: "Solar + Non-Solar (combined)",
+  certificates: "0",
+  obligation: "total",
 };
-
-function computeCompliance(
-  form: FormState,
-  rates: PolicyRate[],
-): ComplianceResult {
-  const rate = rates.find((entry) => entry.year === form.year) ?? rates[0];
-  const consumption = Number(form.consumption) || 0;
-  const actual = Number(form.procurement) || 0;
-  const targetRate = rate.total;
-  const required = (consumption * targetRate) / 100;
-  const compliancePct = required > 0 ? (actual / required) * 100 : 0;
-  const gap = actual - required;
-  const remaining = Math.max(required - actual, 0);
-  const status: ComplianceResult["status"] =
-    gap < -0.5 ? "Shortfall" : gap > 0.5 ? "Surplus" : "Compliant";
-  const tone: StatusTone =
-    status === "Shortfall"
-      ? "danger"
-      : status === "Surplus"
-        ? "success"
-        : "primary";
-  return {
-    targetRate,
-    required,
-    actual,
-    compliancePct,
-    gap,
-    remaining,
-    status,
-    tone,
-  };
-}
 
 const formatMwh = (value: number) =>
   `${Math.round(value).toLocaleString("en-IN")} MWh`;
 
+function mapResult(response: RpoCalculationResponse): ComplianceResult {
+  const status =
+    response.result.status === "compliant"
+      ? "Compliant"
+      : response.result.status === "surplus"
+        ? "Surplus"
+        : "Shortfall";
+  return {
+    targetRate: response.target.percent,
+    required: response.target.required_mwh,
+    actual: response.eligible.total_mwh,
+    compliancePct: response.result.compliance_pct,
+    gap: response.result.surplus_mwh - response.result.shortfall_mwh,
+    remaining: response.result.shortfall_mwh,
+    surplus: response.result.surplus_mwh,
+    status,
+    tone:
+      status === "Shortfall"
+        ? "danger"
+        : status === "Surplus"
+          ? "success"
+          : "primary",
+    notes: response.notes,
+    certificatesCounted: response.eligible.certificates_mwh,
+    certificatesCapped: response.eligible.certificates_capped_mwh,
+    effectiveFrom: response.target.effective_from,
+    effectiveTo: response.target.effective_to,
+    verified: response.policy.verified,
+    sourceUrl: response.policy.source.url,
+    policyVersion: response.policy.version,
+    framework: response.policy.framework,
+    obligationLabel: response.target.obligation_label,
+  };
+}
+
 /* ------------------------------------------------------------------ */
-/* Circular compliance gauge                                           */
+/* Gauge                                                               */
 /* ------------------------------------------------------------------ */
 
 function ComplianceGauge({
@@ -271,10 +188,8 @@ function ComplianceGauge({
   tone: StatusTone;
 }) {
   const clamped = Math.max(0, Math.min(percent, 150));
-  const radius = 62;
-  const circumference = 2 * Math.PI * radius;
-  const arc = (clamped / 150) * circumference;
-  const strokeClass =
+  const arc = (Math.min(clamped, 100) / 100) * 220;
+  const color =
     tone === "danger"
       ? "stroke-destructive"
       : tone === "success"
@@ -282,221 +197,31 @@ function ComplianceGauge({
         : "stroke-primary";
 
   return (
-    <div className="relative flex size-52 items-center justify-center">
-      <svg viewBox="0 0 160 160" className="size-full -rotate-90" role="img">
-        <title>Compliance percentage gauge</title>
-        <circle
-          cx="80"
-          cy="80"
-          r={radius}
+    <div className="relative flex size-48 items-center justify-center">
+      <svg viewBox="0 0 200 120" className="absolute inset-0 size-full">
+        <title>Compliance gauge</title>
+        <path
+          d="M20 100 A80 80 0 0 1 180 100"
           fill="none"
-          strokeWidth="14"
-          className="stroke-muted"
-        />
-        <circle
-          cx="80"
-          cy="80"
-          r={radius}
-          fill="none"
-          strokeWidth="14"
+          className="stroke-border"
+          strokeWidth="12"
           strokeLinecap="round"
-          strokeDasharray={`${arc} ${circumference - arc}`}
-          className={strokeClass}
+        />
+        <path
+          d="M20 100 A80 80 0 0 1 180 100"
+          fill="none"
+          className={color}
+          strokeWidth="12"
+          strokeLinecap="round"
+          strokeDasharray={`${arc} 260`}
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-mono text-4xl font-semibold tracking-tight text-foreground">
-          {percent.toFixed(1)}
-          <span className="text-xl text-muted-foreground">%</span>
-        </span>
-        <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
-          Compliance
-        </span>
-        <span className="mt-2">
-          <StatusBadge tone={tone}>{status}</StatusBadge>
-        </span>
+      <div className="mt-6 text-center">
+        <p className="font-mono text-3xl font-semibold text-foreground">
+          {percent.toFixed(1)}%
+        </p>
+        <StatusBadge tone={tone}>{status}</StatusBadge>
       </div>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Target vs actual bar chart                                          */
-/* ------------------------------------------------------------------ */
-
-function TargetActualBars({
-  required,
-  actual,
-}: {
-  required: number;
-  actual: number;
-}) {
-  const max = Math.max(required, actual, 1);
-  const bars = [
-    {
-      id: "required",
-      label: "Required procurement",
-      value: required,
-      color: "var(--chart-1)",
-    },
-    {
-      id: "actual",
-      label: "Actual eligible procurement",
-      value: actual,
-      color: "var(--chart-3)",
-    },
-  ];
-  return (
-    <div className="space-y-5">
-      {bars.map((bar) => (
-        <div key={bar.id} className="space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">{bar.label}</span>
-            <span className="font-mono font-medium text-foreground">
-              {formatMwh(bar.value)}
-            </span>
-          </div>
-          <div className="h-3 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full transition-smooth"
-              style={{
-                width: `${(bar.value / max) * 100}%`,
-                backgroundColor: bar.color,
-              }}
-            />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* RPO trajectory line chart (2025-2030)                               */
-/* ------------------------------------------------------------------ */
-
-function TrajectoryChart() {
-  const width = 340;
-  const height = 150;
-  const padX = 30;
-  const padY = 18;
-  const maxValue = 50;
-  const stepX = (width - padX * 2) / (RPO_TRAJECTORY.length - 1);
-  const toY = (value: number) =>
-    height - padY - (value / maxValue) * (height - padY * 2);
-  const points = RPO_TRAJECTORY.map(
-    (point, index) => `${padX + index * stepX},${toY(point.target)}`,
-  ).join(" ");
-
-  return (
-    <div className="w-full">
-      <svg
-        viewBox={`0 0 ${width} ${height}`}
-        className="h-40 w-full"
-        role="img"
-        aria-label="RPO target trajectory from 2025 to 2030"
-      >
-        <title>RPO target trajectory 2025 to 2030</title>
-        {[0, 10, 20, 30, 40, 50].map((tick) => (
-          <g key={tick}>
-            <line
-              x1={padX}
-              y1={toY(tick)}
-              x2={width - padX}
-              y2={toY(tick)}
-              className="stroke-border"
-              strokeWidth="0.5"
-            />
-            <text
-              x={padX - 6}
-              y={toY(tick) + 3}
-              textAnchor="end"
-              className="fill-muted-foreground font-mono text-[7px]"
-            >
-              {tick}
-            </text>
-          </g>
-        ))}
-        <polyline
-          points={points}
-          fill="none"
-          className="stroke-primary"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        {RPO_TRAJECTORY.map((point, index) => (
-          <circle
-            key={point.year}
-            cx={padX + index * stepX}
-            cy={toY(point.target)}
-            r="2.6"
-            className="fill-primary"
-          />
-        ))}
-        {RPO_TRAJECTORY.map((point, index) => (
-          <text
-            key={`label-${point.year}`}
-            x={padX + index * stepX}
-            y={height - 4}
-            textAnchor="middle"
-            className="fill-muted-foreground font-mono text-[7px]"
-          >
-            {point.year}
-          </text>
-        ))}
-      </svg>
-      <p className="mt-2 text-center font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-        29.91% (FY26) → 43.33% (FY30) · illustrative baseline
-      </p>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Small helpers                                                       */
-/* ------------------------------------------------------------------ */
-
-function FieldLabel({
-  htmlFor,
-  children,
-}: {
-  htmlFor: string;
-  children: string;
-}) {
-  return (
-    <Label
-      htmlFor={htmlFor}
-      className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground"
-    >
-      {children}
-    </Label>
-  );
-}
-
-function ResultStat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone?: "default" | "danger" | "success";
-}) {
-  return (
-    <div className="rounded-xl border border-border bg-muted/30 px-4 py-3">
-      <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-        {label}
-      </p>
-      <p
-        className={cn(
-          "mt-1 font-mono text-lg font-semibold text-foreground",
-          tone === "danger" && "text-destructive",
-          tone === "success" && "text-success",
-        )}
-      >
-        {value}
-      </p>
     </div>
   );
 }
@@ -507,39 +232,80 @@ function ResultStat({
 
 export default function RpoCompliancePage() {
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
-  const [rates, setRates] = useState<PolicyRate[]>(DEFAULT_POLICY_RATES);
-  const [policyType, setPolicyType] = useState<string>(POLICY_TYPES[0]);
-  const [policySource, setPolicySource] = useState(DEMO_SOURCE);
-  const [effectiveDate, setEffectiveDate] = useState("2025-04-01");
-  const [result, setResult] = useState<ComplianceResult | null>(() =>
-    computeCompliance(INITIAL_FORM, DEFAULT_POLICY_RATES),
-  );
-  const [history, setHistory] = useState<SavedCalculation[]>(SEED_HISTORY);
+  const [result, setResult] = useState<ComplianceResult | null>(null);
+  const [policy, setPolicy] = useState<RpoTargetsResponse | null>(null);
+  const [policyError, setPolicyError] = useState<string | null>(null);
+  const [history, setHistory] = useState<SavedCalculation[]>([]);
+  const [calculating, setCalculating] = useState(false);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [editingEntity, setEditingEntity] = useState(false);
   const [savedNotice, setSavedNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    urjaApi
+      .rpoTargets()
+      .then((data) => {
+        if (active) setPolicy(data);
+      })
+      .catch((error) => {
+        if (active) {
+          setPolicyError(
+            error instanceof ApiError
+              ? error.message
+              : "Could not load the RPO policy file.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const years = policy?.years?.length ? policy.years : FALLBACK_YEARS;
 
   const update = (key: keyof FormState, value: string) =>
     setForm((prev) => ({ ...prev, [key]: value }));
 
-  const updateRate = (
-    year: string,
-    key: "solar" | "nonSolar",
-    value: string,
-  ) => {
-    setRates((prev) =>
-      prev.map((entry) => {
-        if (entry.year !== year) return entry;
-        const parsed = Number(value) || 0;
-        const next = { ...entry, [key]: parsed };
-        next.total = Number((next.solar + next.nonSolar).toFixed(2));
-        return next;
-      }),
-    );
-  };
+  const discomTargets = useMemo(() => {
+    const rows = policy?.targets.filter((row) => row.category === "DISCOM") ?? [];
+    return rows.map((row) => ({
+      year: row.year,
+      wind: row.sub_targets?.wind ?? null,
+      hydro: row.sub_targets?.hydro ?? null,
+      distributed: row.sub_targets?.distributed_re ?? null,
+      other: row.sub_targets?.other ?? null,
+      total: row.total,
+    }));
+  }, [policy]);
 
-  const handleCalculate = () => {
-    setResult(computeCompliance(form, rates));
+  const handleCalculate = async () => {
+    setCalculating(true);
+    setApiError(null);
     setSavedNotice(null);
+    try {
+      const response = await urjaApi.rpoCalculate({
+        entity_name: form.entityName || "Unnamed entity",
+        entity_category: form.category,
+        state: form.state,
+        year: form.year,
+        consumption: Number(form.consumption),
+        consumption_unit: "MWh",
+        renewable_procured: Number(form.procurement || 0),
+        certificates: Number(form.certificates || 0),
+        obligation_category: form.obligation,
+      });
+      setResult(mapResult(response));
+    } catch (error) {
+      setResult(null);
+      setApiError(
+        error instanceof ApiError
+          ? error.message
+          : "The compliance calculation failed.",
+      );
+    } finally {
+      setCalculating(false);
+    }
   };
 
   const handleSave = () => {
@@ -559,11 +325,8 @@ export default function RpoCompliancePage() {
 
   const handleReset = () => {
     setForm(INITIAL_FORM);
-    setRates(DEFAULT_POLICY_RATES);
-    setPolicyType(POLICY_TYPES[0]);
-    setPolicySource(DEMO_SOURCE);
-    setEffectiveDate("2025-04-01");
-    setResult(computeCompliance(INITIAL_FORM, DEFAULT_POLICY_RATES));
+    setResult(null);
+    setApiError(null);
     setSavedNotice(null);
   };
 
@@ -575,23 +338,23 @@ export default function RpoCompliancePage() {
       ["Entity category", form.category],
       ["State", form.state],
       ["Compliance year", form.year],
-      ["Obligation category", form.obligation],
+      ["Obligation category", result.obligationLabel],
       ["Total consumption (MWh)", form.consumption],
-      ["Existing eligible procurement (MWh)", form.procurement],
+      ["Eligible renewable procurement (MWh)", form.procurement],
+      ["Certificates declared (MWh)", form.certificates],
+      ["Certificates counted (MWh)", result.certificatesCounted.toFixed(3)],
+      ["Certificates not counted (MWh)", result.certificatesCapped.toFixed(3)],
       ["Applicable RPO target (%)", result.targetRate.toFixed(2)],
       ["Required procurement (MWh)", Math.round(result.required).toString()],
-      [
-        "Actual eligible procurement (MWh)",
-        Math.round(result.actual).toString(),
-      ],
+      ["Eligible procurement (MWh)", Math.round(result.actual).toString()],
       ["Compliance (%)", result.compliancePct.toFixed(2)],
-      ["Shortfall / surplus (MWh)", Math.round(result.gap).toString()],
-      ["Remaining requirement (MWh)", Math.round(result.remaining).toString()],
+      ["Shortfall (MWh)", Math.round(result.remaining).toString()],
+      ["Surplus (MWh)", Math.round(result.surplus).toString()],
       ["Compliance status", result.status],
-      ["Policy source", policySource],
-      ["Policy type", policyType],
-      ["Effective date", effectiveDate],
-      ["Data label", "DEMO DATA — illustrative sample"],
+      ["Policy framework", result.framework],
+      ["Policy version", result.policyVersion],
+      ["Policy source", result.sourceUrl],
+      ["Target verified", result.verified ? "yes" : "no"],
     ];
     const csv = rows
       .map((row) => row.map((cell) => `"${cell}"`).join(","))
@@ -605,14 +368,12 @@ export default function RpoCompliancePage() {
     URL.revokeObjectURL(url);
   };
 
-  const shortfallTone = useMemo(() => {
-    if (!result) return "neutral" as const;
-    return result.gap < 0 ? ("danger" as const) : ("success" as const);
-  }, [result]);
+  const trajectory = discomTargets.length
+    ? discomTargets
+    : [{ year: "2025-26", wind: null, hydro: null, distributed: null, other: null, total: 33.01 }];
 
   return (
     <PageFrame>
-      {/* Header */}
       <header className="border-b border-border pb-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl space-y-3">
@@ -623,61 +384,84 @@ export default function RpoCompliancePage() {
               Renewable Purchase Obligation Tracker
             </h1>
             <p className="text-base leading-relaxed text-muted-foreground md:text-lg">
-              Track renewable procurement, compare targets, and calculate
-              compliance.
+              Calculate compliance against the notified, versioned RPO trajectory.
+              The backend refuses to guess a target that is not configured.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <SampleTag />
-            <StatusBadge tone="neutral">{DEMO_PERIOD}</StatusBadge>
+          <div className="flex flex-col items-start gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusBadge tone={policy ? "success" : policyError ? "danger" : "neutral"}>
+                {policy ? "Policy loaded" : policyError ? "Policy unavailable" : "Loading policy"}
+              </StatusBadge>
+              {result && (
+                <StatusBadge tone={result.verified ? "success" : "warning"}>
+                  {result.verified ? "Verified target" : "Unverified target"}
+                </StatusBadge>
+              )}
+            </div>
             <span className="font-mono text-xs text-muted-foreground">
-              Source: {DEMO_SOURCE}
+              {policy?.policy.framework ?? "MoP RPO/RCO trajectory till 2029-30"}
             </span>
           </div>
         </div>
       </header>
 
-      {/* Calculator + result */}
+      {policyError && (
+        <Card className="mt-6 rounded-[18px] border-destructive/30 bg-destructive/5 p-5">
+          <p className="flex items-center gap-2 text-sm text-foreground">
+            <AlertTriangle className="size-4 text-destructive" aria-hidden="true" />
+            {policyError}
+          </p>
+        </Card>
+      )}
+
       <section className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         {/* Input form */}
         <Card
           data-ocid="rpo.calculator_panel"
           className="rounded-[18px] border-border bg-card p-6 shadow-subtle md:p-8"
         >
-          <div className="flex items-start justify-between gap-3">
-            <div className="space-y-1">
-              <h2 className="font-display text-xl font-semibold text-foreground">
-                Compliance calculator
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Enter entity details to compute the obligation position.
-              </p>
-            </div>
-            <SampleTag />
+          <div className="space-y-1">
+            <h2 className="font-display text-xl font-semibold text-foreground">
+              Compliance calculator
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              Enter entity details to compute the obligation position.
+            </p>
           </div>
 
           <div className="mt-6 grid gap-5 sm:grid-cols-2">
             <div className="flex flex-col gap-2 sm:col-span-2">
-              <FieldLabel htmlFor="rpo-entity">Entity name</FieldLabel>
+              <label
+                htmlFor="rpo-entity"
+                className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+              >
+                Entity name
+              </label>
               <Input
                 id="rpo-entity"
                 data-ocid="rpo.entity_name_input"
                 value={form.entityName}
                 onChange={(event) => update("entityName", event.target.value)}
-                placeholder="e.g. Jaipur Vidyut Vitran Nigam"
                 className="rounded-lg border-input bg-background"
               />
             </div>
 
             <div className="flex flex-col gap-2">
-              <FieldLabel htmlFor="rpo-category">Entity category</FieldLabel>
+              <label
+                htmlFor="rpo-category"
+                className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+              >
+                Entity category
+              </label>
               <Select
                 value={form.category}
-                onValueChange={(value) => update("category", value)}
+                onValueChange={(value) =>
+                  update("category", value as RpoEntityCategory)
+                }
               >
                 <SelectTrigger
                   id="rpo-category"
-                  aria-label="Entity category"
                   data-ocid="rpo.category_select"
                   className="w-full rounded-lg border-input bg-background"
                 >
@@ -694,14 +478,15 @@ export default function RpoCompliancePage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <FieldLabel htmlFor="rpo-state">State</FieldLabel>
-              <Select
-                value={form.state}
-                onValueChange={(value) => update("state", value)}
+              <label
+                htmlFor="rpo-state"
+                className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
               >
+                State
+              </label>
+              <Select value={form.state} onValueChange={(value) => update("state", value)}>
                 <SelectTrigger
                   id="rpo-state"
-                  aria-label="State"
                   data-ocid="rpo.state_select"
                   className="w-full rounded-lg border-input bg-background"
                 >
@@ -718,21 +503,22 @@ export default function RpoCompliancePage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <FieldLabel htmlFor="rpo-year">Compliance year</FieldLabel>
-              <Select
-                value={form.year}
-                onValueChange={(value) => update("year", value)}
+              <label
+                htmlFor="rpo-year"
+                className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
               >
+                Compliance year
+              </label>
+              <Select value={form.year} onValueChange={(value) => update("year", value)}>
                 <SelectTrigger
                   id="rpo-year"
-                  aria-label="Compliance year"
                   data-ocid="rpo.year_select"
                   className="w-full rounded-lg border-input bg-background"
                 >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {COMPLIANCE_YEARS.map((option) => (
+                  {years.map((option) => (
                     <SelectItem key={option} value={option}>
                       FY {option}
                     </SelectItem>
@@ -742,25 +528,29 @@ export default function RpoCompliancePage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <FieldLabel htmlFor="rpo-obligation">
+              <label
+                htmlFor="rpo-obligation"
+                className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+              >
                 Obligation category
-              </FieldLabel>
+              </label>
               <Select
                 value={form.obligation}
-                onValueChange={(value) => update("obligation", value)}
+                onValueChange={(value) =>
+                  update("obligation", value as RpoObligationCategory)
+                }
               >
                 <SelectTrigger
                   id="rpo-obligation"
-                  aria-label="Obligation category"
                   data-ocid="rpo.obligation_select"
                   className="w-full rounded-lg border-input bg-background"
                 >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {OBLIGATION_CATEGORIES.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
+                  {OBLIGATIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -768,9 +558,12 @@ export default function RpoCompliancePage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <FieldLabel htmlFor="rpo-consumption">
-                Total electricity consumption (MWh)
-              </FieldLabel>
+              <label
+                htmlFor="rpo-consumption"
+                className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+              >
+                Consumption (MWh)
+              </label>
               <Input
                 id="rpo-consumption"
                 data-ocid="rpo.consumption_input"
@@ -784,9 +577,12 @@ export default function RpoCompliancePage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <FieldLabel htmlFor="rpo-procurement">
-                Existing eligible RE procurement (MWh)
-              </FieldLabel>
+              <label
+                htmlFor="rpo-procurement"
+                className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+              >
+                Renewable electricity (MWh)
+              </label>
               <Input
                 id="rpo-procurement"
                 data-ocid="rpo.procurement_input"
@@ -798,16 +594,53 @@ export default function RpoCompliancePage() {
                 className="rounded-lg border-input bg-background font-mono"
               />
             </div>
+
+            <div className="flex flex-col gap-2 sm:col-span-2">
+              <label
+                htmlFor="rpo-certificates"
+                className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+              >
+                Eligible certificates / credits (MWh)
+              </label>
+              <Input
+                id="rpo-certificates"
+                data-ocid="rpo.certificates_input"
+                type="number"
+                inputMode="numeric"
+                min="0"
+                value={form.certificates}
+                onChange={(event) => update("certificates", event.target.value)}
+                className="rounded-lg border-input bg-background font-mono"
+              />
+              <p className="text-xs text-muted-foreground">
+                Certificates are only counted up to the remaining requirement, so
+                the same renewable energy cannot be claimed twice.
+              </p>
+            </div>
           </div>
+
+          {apiError && (
+            <p
+              role="alert"
+              className="mt-4 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+            >
+              {apiError}
+            </p>
+          )}
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Button
               type="button"
               data-ocid="rpo.calculate_button"
-              onClick={handleCalculate}
+              onClick={() => void handleCalculate()}
+              disabled={calculating}
               className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              <Calculator className="size-4" aria-hidden="true" />
+              {calculating ? (
+                <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Calculator className="size-4" aria-hidden="true" />
+              )}
               Calculate Compliance
             </Button>
             <Button
@@ -815,6 +648,7 @@ export default function RpoCompliancePage() {
               variant="outline"
               data-ocid="rpo.save_button"
               onClick={handleSave}
+              disabled={!result}
               className="rounded-full border-border bg-card"
             >
               <Save className="size-4" aria-hidden="true" />
@@ -825,6 +659,7 @@ export default function RpoCompliancePage() {
               variant="outline"
               data-ocid="rpo.export_button"
               onClick={handleExport}
+              disabled={!result}
               className="rounded-full border-border bg-card"
             >
               <Download className="size-4" aria-hidden="true" />
@@ -867,7 +702,7 @@ export default function RpoCompliancePage() {
                 {form.entityName || "Unnamed entity"} · FY {form.year}
               </p>
             </div>
-            <SampleTag />
+            <SourceBadge>Backend calculation</SourceBadge>
           </div>
 
           {result ? (
@@ -881,43 +716,41 @@ export default function RpoCompliancePage() {
               </div>
 
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                <ResultStat
-                  label="Applicable RPO target"
-                  value={`${result.targetRate.toFixed(2)}%`}
-                />
-                <ResultStat
-                  label="Required procurement"
-                  value={formatMwh(result.required)}
-                />
-                <ResultStat
-                  label="Actual eligible procurement"
-                  value={formatMwh(result.actual)}
-                />
-                <ResultStat
-                  label="Compliance percentage"
-                  value={`${result.compliancePct.toFixed(1)}%`}
-                />
-                <ResultStat
-                  label={result.gap < 0 ? "Shortfall" : "Surplus"}
-                  value={formatMwh(Math.abs(result.gap))}
-                  tone={result.gap < 0 ? "danger" : "success"}
-                />
-                <ResultStat
-                  label="Remaining requirement"
-                  value={formatMwh(result.remaining)}
-                />
+                {[
+                  ["Applicable target", `${result.targetRate.toFixed(2)}%`],
+                  ["Required procurement", formatMwh(result.required)],
+                  ["Eligible procurement", formatMwh(result.actual)],
+                  ["Compliance", `${result.compliancePct.toFixed(1)}%`],
+                  [
+                    result.remaining > 0 ? "Shortfall" : "Surplus",
+                    formatMwh(result.remaining > 0 ? result.remaining : result.surplus),
+                  ],
+                  ["Certificates counted", formatMwh(result.certificatesCounted)],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="rounded-xl border border-border bg-muted/30 px-4 py-3"
+                  >
+                    <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                      {label}
+                    </p>
+                    <p className="mt-1 font-mono text-lg font-semibold text-foreground">
+                      {value}
+                    </p>
+                  </div>
+                ))}
               </div>
 
               <div
                 data-ocid="rpo.shortfall_indicator"
                 className={cn(
                   "mt-5 flex items-start gap-3 rounded-xl border px-4 py-3",
-                  result.gap < 0
+                  result.remaining > 0
                     ? "border-destructive/25 bg-destructive/5"
                     : "border-success/25 bg-success/5",
                 )}
               >
-                {result.gap < 0 ? (
+                {result.remaining > 0 ? (
                   <AlertTriangle
                     className="mt-0.5 size-5 shrink-0 text-destructive"
                     aria-hidden="true"
@@ -930,16 +763,40 @@ export default function RpoCompliancePage() {
                 )}
                 <div className="space-y-0.5">
                   <p className="text-sm font-medium text-foreground">
-                    {result.gap < 0
+                    {result.remaining > 0
                       ? "Shortfall against obligation"
                       : "Obligation met"}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {result.gap < 0
-                      ? `Procure an additional ${formatMwh(result.remaining)} to reach the ${result.targetRate.toFixed(2)}% target.`
-                      : `Surplus of ${formatMwh(Math.abs(result.gap))} above the ${result.targetRate.toFixed(2)}% target.`}
+                    {result.remaining > 0
+                      ? `Procure an additional ${formatMwh(result.remaining)} to reach the ${result.targetRate.toFixed(2)}% target for ${result.obligationLabel.toLowerCase()}.`
+                      : `Surplus of ${formatMwh(result.surplus)} above the ${result.targetRate.toFixed(2)}% target.`}
                   </p>
                 </div>
+              </div>
+
+              {result.notes.map((note) => (
+                <p
+                  key={note}
+                  className="mt-3 flex gap-2 text-xs leading-relaxed text-muted-foreground"
+                >
+                  <Info className="mt-0.5 size-3.5 shrink-0 text-primary" aria-hidden="true" />
+                  {note}
+                </p>
+              ))}
+
+              <div className="mt-4 flex flex-wrap gap-2">
+                <SourceBadge>
+                  <a href={result.sourceUrl} target="_blank" rel="noreferrer" className="underline">
+                    {result.framework}
+                  </a>
+                </SourceBadge>
+                <SourceBadge>v{result.policyVersion}</SourceBadge>
+                {result.effectiveFrom && (
+                  <SourceBadge>
+                    {result.effectiveFrom} → {result.effectiveTo ?? "—"}
+                  </SourceBadge>
+                )}
               </div>
             </>
           ) : (
@@ -951,95 +808,58 @@ export default function RpoCompliancePage() {
         </Card>
       </section>
 
-      {/* Charts */}
+      {/* Target vs actual + shortfall */}
       <section className="mt-10 grid gap-6 lg:grid-cols-2">
-        <ChartContainer
-          title="Target vs. actual procurement"
-          description="Required obligation against eligible renewable procurement"
-        >
+        <Card className="rounded-[18px] border-border bg-card p-6 shadow-subtle">
+          <h3 className="font-display text-lg font-semibold text-foreground">
+            Target vs. actual procurement
+          </h3>
           {result ? (
-            <TargetActualBars
-              required={result.required}
-              actual={result.actual}
-            />
+            <div className="mt-6 space-y-4">
+              {[
+                { label: "Required", value: result.required, className: "bg-primary/25" },
+                { label: "Eligible", value: result.actual, className: "bg-success/70" },
+              ].map((bar) => (
+                <div key={bar.label}>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">{bar.label}</span>
+                    <span className="font-mono text-foreground">
+                      {formatMwh(bar.value)}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={cn("h-full rounded-full", bar.className)}
+                      style={{
+                        width: `${Math.min(
+                          100,
+                          (bar.value / Math.max(result.required, 1)) * 100,
+                        )}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
-            <p className="text-sm text-muted-foreground">
+            <p className="mt-4 text-sm text-muted-foreground">
               Calculate compliance to compare procurement against the target.
             </p>
           )}
-        </ChartContainer>
+        </Card>
 
-        <ChartContainer
-          title="RPO trajectory 2025–2030"
-          description="Illustrative national obligation trajectory"
-        >
-          <TrajectoryChart />
-        </ChartContainer>
-      </section>
-
-      {/* Annual history + shortfall */}
-      <section className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-        <ChartContainer
-          title="Annual compliance history"
-          description="Target versus achieved obligation by compliance year"
-        >
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[520px] border-collapse text-sm">
-              <thead>
-                <tr className="border-b border-border text-left">
-                  <th className="pb-3 pr-4 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    Compliance year
-                  </th>
-                  <th className="pb-3 pr-4 text-right font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    Target
-                  </th>
-                  <th className="pb-3 pr-4 text-right font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    Achieved
-                  </th>
-                  <th className="pb-3 text-right font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {ANNUAL_HISTORY.map((row, index) => (
-                  <tr
-                    key={row.year}
-                    data-ocid={`rpo.history_row.${index + 1}`}
-                    className="border-b border-border/60 last:border-0"
-                  >
-                    <td className="py-3 pr-4 font-medium text-foreground">
-                      {row.year}
-                    </td>
-                    <td className="py-3 pr-4 text-right font-mono text-foreground">
-                      {row.target.toFixed(2)}%
-                    </td>
-                    <td className="py-3 pr-4 text-right font-mono text-foreground">
-                      {row.achieved.toFixed(2)}%
-                    </td>
-                    <td className="py-3 text-right">
-                      <StatusBadge tone={row.tone}>{row.status}</StatusBadge>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </ChartContainer>
-
-        <Card className="flex flex-col rounded-[18px] border-border bg-card p-6 shadow-subtle">
+        <Card className="rounded-[18px] border-border bg-card p-6 shadow-subtle">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
               <TrendingUp className="size-4" aria-hidden="true" />
               Shortfall indicator
             </span>
-            <SampleTag />
           </div>
           <p className="mt-4 font-mono text-3xl font-semibold text-foreground">
-            {result ? formatMwh(Math.abs(result.gap)) : "—"}
+            {result ? formatMwh(result.remaining) : "—"}
           </p>
           <div className="mt-2 flex items-center gap-2">
-            {result && result.gap < 0 ? (
+            {result && result.remaining > 0 ? (
               <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-destructive">
                 <ArrowDownRight className="size-3.5" aria-hidden="true" />
                 Below obligation
@@ -1050,188 +870,115 @@ export default function RpoCompliancePage() {
                 Above obligation
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-muted-foreground">
-                <Minus className="size-3.5" aria-hidden="true" />
+              <span className="font-mono text-xs font-semibold text-muted-foreground">
                 Awaiting calculation
               </span>
             )}
-            <StatusBadge tone={shortfallTone}>
+            <StatusBadge tone={result ? result.tone : "neutral"}>
               {result ? result.status : "Pending"}
             </StatusBadge>
           </div>
           <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-            The shortfall indicator compares eligible renewable procurement
-            against the applicable obligation for the selected year and
-            category. A negative value signals a compliance gap that must be
-            closed with additional procurement or certificates.
+            The shortfall is measured against the requirement for the selected
+            year, entity category and obligation category. A remaining value means
+            the obligation is not yet met.
           </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <SourceBadge>{DEMO_SOURCE}</SourceBadge>
-            <SourceBadge>{DEMO_PERIOD}</SourceBadge>
-          </div>
         </Card>
       </section>
 
-      {/* Policy assumptions */}
+      {/* Policy table */}
       <section className="mt-10">
         <SectionHeading
-          eyebrow="Policy assumptions"
-          title="Configurable RPO rates"
-          description="Adjust the applicable obligation rate by year, category and policy type. Values are illustrative and editable."
-          action={<SampleTag />}
+          eyebrow="Policy configuration"
+          title="Notified RPO trajectory"
+          description="Read directly from the backend's versioned policy file. Update that file to change targets — the UI cannot edit policy values."
+          action={
+            <StatusBadge tone={policy?.policy.verified ? "success" : "warning"}>
+              {policy?.policy.verified ? "Verified" : "Unverified"}
+            </StatusBadge>
+          }
         />
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
-          <Card className="rounded-[18px] border-border bg-card p-6 shadow-subtle">
-            <div className="flex items-center gap-2 text-primary">
-              <Info className="size-4" aria-hidden="true" />
-              <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em]">
-                Policy source
-              </span>
-            </div>
-            <div className="mt-5 space-y-5">
-              <div className="flex flex-col gap-2">
-                <FieldLabel htmlFor="rpo-policy-type">Policy type</FieldLabel>
-                <Select value={policyType} onValueChange={setPolicyType}>
-                  <SelectTrigger
-                    id="rpo-policy-type"
-                    aria-label="Policy type"
-                    data-ocid="rpo.policy_type_select"
-                    className="w-full rounded-lg border-input bg-background"
+        <Card className="mt-6 rounded-[18px] border-border bg-card p-6 shadow-subtle">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[620px] border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-border text-left">
+                  {["Year", "Wind %", "Hydro %", "Distributed RE %", "Other %", "Total %"].map(
+                    (heading, index) => (
+                      <th
+                        key={heading}
+                        className={cn(
+                          "pb-3 pr-4 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground",
+                          index > 0 && "text-right",
+                        )}
+                      >
+                        {heading}
+                      </th>
+                    ),
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {trajectory.map((row, index) => (
+                  <tr
+                    key={row.year}
+                    data-ocid={`rpo.rate_row.${index + 1}`}
+                    className="border-b border-border/60 last:border-0"
                   >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {POLICY_TYPES.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <FieldLabel htmlFor="rpo-policy-source">
-                  Policy source
-                </FieldLabel>
-                <Input
-                  id="rpo-policy-source"
-                  data-ocid="rpo.policy_source_input"
-                  value={policySource}
-                  onChange={(event) => setPolicySource(event.target.value)}
-                  className="rounded-lg border-input bg-background"
-                />
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <FieldLabel htmlFor="rpo-effective-date">
-                  Effective date
-                </FieldLabel>
-                <Input
-                  id="rpo-effective-date"
-                  data-ocid="rpo.effective_date_input"
-                  type="date"
-                  value={effectiveDate}
-                  onChange={(event) => setEffectiveDate(event.target.value)}
-                  className="rounded-lg border-input bg-background font-mono"
-                />
-              </div>
-            </div>
-          </Card>
-
-          <Card className="rounded-[18px] border-border bg-card p-6 shadow-subtle">
-            <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg font-semibold text-foreground">
-                Obligation rates by year
-              </h3>
-              <SampleTag />
-            </div>
-            <div className="mt-5 overflow-x-auto">
-              <table className="w-full min-w-[520px] border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-border text-left">
-                    <th className="pb-3 pr-4 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                      Year
-                    </th>
-                    <th className="pb-3 pr-4 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                      Solar %
-                    </th>
-                    <th className="pb-3 pr-4 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                      Non-solar %
-                    </th>
-                    <th className="pb-3 text-right font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                      Total %
-                    </th>
+                    <td className="py-2.5 pr-4 font-medium text-foreground">
+                      FY {row.year}
+                    </td>
+                    <td className="py-2.5 pr-4 text-right font-mono text-foreground">
+                      {row.wind === null ? "—" : row.wind.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 pr-4 text-right font-mono text-foreground">
+                      {row.hydro === null ? "—" : row.hydro.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 pr-4 text-right font-mono text-foreground">
+                      {row.distributed === null ? "—" : row.distributed.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 pr-4 text-right font-mono text-foreground">
+                      {row.other === null ? "—" : row.other.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 text-right font-mono font-semibold text-foreground">
+                      {row.total.toFixed(2)}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {rates.map((rate, index) => (
-                    <tr
-                      key={rate.year}
-                      data-ocid={`rpo.rate_row.${index + 1}`}
-                      className="border-b border-border/60 last:border-0"
-                    >
-                      <td className="py-2.5 pr-4 font-medium text-foreground">
-                        FY {rate.year}
-                      </td>
-                      <td className="py-2.5 pr-4">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          aria-label={`Solar rate for ${rate.year}`}
-                          data-ocid={`rpo.solar_rate_input.${index + 1}`}
-                          value={rate.solar}
-                          onChange={(event) =>
-                            updateRate(rate.year, "solar", event.target.value)
-                          }
-                          className="h-8 w-24 rounded-md border-input bg-background font-mono text-sm"
-                        />
-                      </td>
-                      <td className="py-2.5 pr-4">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          aria-label={`Non-solar rate for ${rate.year}`}
-                          data-ocid={`rpo.nonsolar_rate_input.${index + 1}`}
-                          value={rate.nonSolar}
-                          onChange={(event) =>
-                            updateRate(
-                              rate.year,
-                              "nonSolar",
-                              event.target.value,
-                            )
-                          }
-                          className="h-8 w-24 rounded-md border-input bg-background font-mono text-sm"
-                        />
-                      </td>
-                      <td className="py-2.5 text-right font-mono font-semibold text-foreground">
-                        {rate.total.toFixed(2)}%
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-4 text-xs text-muted-foreground">
+            Captive and open access consumers have a single total obligation in the
+            same order, so sub-targets are not offered for those categories.
+          </p>
+          {policy && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <SourceBadge>
+                <a
+                  href={policy.policy.source.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
+                  {policy.policy.source.name}
+                </a>
+              </SourceBadge>
+              <SourceBadge>Updated {policy.policy.updated_at}</SourceBadge>
             </div>
-            <p className="mt-4 text-xs text-muted-foreground">
-              Total is the sum of solar and non-solar rates. The 29.91% → 43.33%
-              trajectory is an illustrative baseline only.
-            </p>
-          </Card>
-        </div>
+          )}
+        </Card>
       </section>
 
-      {/* Saved calculations + entity info */}
+      {/* History + entity */}
       <section className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <Card className="rounded-[18px] border-border bg-card p-6 shadow-subtle">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
               <History className="size-4" aria-hidden="true" />
-              Calculation history
+              Session calculations
             </span>
-            <SampleTag />
           </div>
           {history.length > 0 ? (
             <ul data-ocid="rpo.history_list" className="mt-5 space-y-3">
@@ -1260,8 +1007,8 @@ export default function RpoCompliancePage() {
             </ul>
           ) : (
             <p className="mt-5 text-sm text-muted-foreground">
-              No saved calculations yet. Run a calculation and save it to build
-              your history.
+              No saved calculations in this session. Run a calculation and save it
+              to build a shortlist.
             </p>
           )}
         </Card>
@@ -1279,7 +1026,6 @@ export default function RpoCompliancePage() {
               onClick={() => setEditingEntity((prev) => !prev)}
               className="rounded-full text-muted-foreground hover:text-foreground"
             >
-              <Pencil className="size-3.5" aria-hidden="true" />
               {editingEntity ? "Done" : "Edit"}
             </Button>
           </div>
@@ -1287,81 +1033,60 @@ export default function RpoCompliancePage() {
           {editingEntity ? (
             <div className="mt-5 space-y-4">
               <div className="flex flex-col gap-2">
-                <FieldLabel htmlFor="rpo-edit-name">Entity name</FieldLabel>
+                <label
+                  htmlFor="rpo-edit-name"
+                  className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
+                >
+                  Entity name
+                </label>
                 <Input
                   id="rpo-edit-name"
-                  data-ocid="rpo.edit_name_input"
                   value={form.entityName}
                   onChange={(event) => update("entityName", event.target.value)}
                   className="rounded-lg border-input bg-background"
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <FieldLabel htmlFor="rpo-edit-category">
-                  Entity category
-                </FieldLabel>
-                <Select
-                  value={form.category}
-                  onValueChange={(value) => update("category", value)}
+                <label
+                  htmlFor="rpo-edit-state"
+                  className="font-mono text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground"
                 >
-                  <SelectTrigger
-                    id="rpo-edit-category"
-                    aria-label="Entity category"
-                    data-ocid="rpo.edit_category_select"
-                    className="w-full rounded-lg border-input bg-background"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ENTITY_CATEGORIES.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  State
+                </label>
+                <Input
+                  id="rpo-edit-state"
+                  value={form.state}
+                  onChange={(event) => update("state", event.target.value)}
+                  className="rounded-lg border-input bg-background"
+                />
               </div>
             </div>
           ) : (
             <dl className="mt-5 space-y-3 text-sm">
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-muted-foreground">Entity name</dt>
-                <dd className="text-right font-medium text-foreground">
-                  {form.entityName || "—"}
-                </dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-muted-foreground">Category</dt>
-                <dd className="text-right font-medium text-foreground">
-                  {form.category}
-                </dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-muted-foreground">State</dt>
-                <dd className="text-right font-medium text-foreground">
-                  {form.state}
-                </dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-muted-foreground">Obligation category</dt>
-                <dd className="text-right font-medium text-foreground">
-                  {form.obligation}
-                </dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt className="text-muted-foreground">Compliance year</dt>
-                <dd className="text-right font-mono font-medium text-foreground">
-                  FY {form.year}
-                </dd>
-              </div>
+              {[
+                ["Entity name", form.entityName || "—"],
+                ["Category", form.category],
+                ["State", form.state],
+                [
+                  "Obligation category",
+                  OBLIGATIONS.find((option) => option.value === form.obligation)?.label ??
+                    form.obligation,
+                ],
+                ["Compliance year", `FY ${form.year}`],
+              ].map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between gap-4">
+                  <dt className="text-muted-foreground">{label}</dt>
+                  <dd className="text-right font-medium text-foreground">{value}</dd>
+                </div>
+              ))}
             </dl>
           )}
         </Card>
       </section>
 
       <p className="mt-10 border-t border-border pt-6 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-        DEMO DATA · Illustrative sample only · Source: {DEMO_SOURCE} ·{" "}
-        {DEMO_PERIOD}
+        Calculations run in the URJA FastAPI backend · policy file version{" "}
+        {policy?.policy.version ?? "unavailable"}
       </p>
     </PageFrame>
   );

@@ -1,0 +1,193 @@
+{
+  "version": "mop-rpo-2023-10-20",
+  "framework": "Ministry of Power — RPO/RCO trajectory till 2029-30 (notified 20 October 2023)",
+  "verified": true,
+  "source": {
+    "name": "Ministry of Power — Renewable Purchase Obligation and Energy Storage Obligation trajectory till 2029-30",
+    "url": "https://powermin.gov.in/sites/default/files/Renewable_Purchase_Obligation_and_Energy_Storage_Obligation_Trajectory_till_2029_30.pdf",
+    "effective_from": "2024-04-01",
+    "note": "Source-wise sub-targets apply to distribution licensees (DISCOMs). The order also prescribes a single total RCO trajectory for captive and open access consumers."
+  },
+  "updated_at": "2026-11-12",
+  "notes": [
+    "Only values published in the notified MoP order are stored. Anything else must be added by an administrator with its own source.",
+    "State Electricity Regulatory Commissions may notify different state-level trajectories. Those must be added as a separate policy version with the SERC order as its source.",
+    "Sub-target compliance is cumulative in spirit: a wind shortfall may be met from excess hydro and vice versa, subject to the order. This engine reports each sub-target independently and does not net them automatically."
+  ],
+  "targets": [
+    {
+      "year": "2024-25",
+      "category": "DISCOM",
+      "sub_targets": {
+        "wind": 0.67,
+        "hydro": 0.38,
+        "distributed_re": 1.5,
+        "other": 27.35
+      },
+      "total": 29.91,
+      "effective_from": "2024-04-01",
+      "effective_to": "2025-03-31"
+    },
+    {
+      "year": "2025-26",
+      "category": "DISCOM",
+      "sub_targets": {
+        "wind": 1.45,
+        "hydro": 1.22,
+        "distributed_re": 2.1,
+        "other": 28.24
+      },
+      "total": 33.01,
+      "effective_from": "2025-04-01",
+      "effective_to": "2026-03-31"
+    },
+    {
+      "year": "2026-27",
+      "category": "DISCOM",
+      "sub_targets": {
+        "wind": 1.97,
+        "hydro": 1.34,
+        "distributed_re": 2.7,
+        "other": 29.94
+      },
+      "total": 35.95,
+      "effective_from": "2026-04-01",
+      "effective_to": "2027-03-31"
+    },
+    {
+      "year": "2027-28",
+      "category": "DISCOM",
+      "sub_targets": {
+        "wind": 2.45,
+        "hydro": 1.42,
+        "distributed_re": 3.3,
+        "other": 31.64
+      },
+      "total": 38.81,
+      "effective_from": "2027-04-01",
+      "effective_to": "2028-03-31"
+    },
+    {
+      "year": "2028-29",
+      "category": "DISCOM",
+      "sub_targets": {
+        "wind": 2.95,
+        "hydro": 1.42,
+        "distributed_re": 3.9,
+        "other": 33.1
+      },
+      "total": 41.36,
+      "effective_from": "2028-04-01",
+      "effective_to": "2029-03-31"
+    },
+    {
+      "year": "2029-30",
+      "category": "DISCOM",
+      "sub_targets": {
+        "wind": 3.48,
+        "hydro": 1.33,
+        "distributed_re": 4.5,
+        "other": 34.02
+      },
+      "total": 43.33,
+      "effective_from": "2029-04-01",
+      "effective_to": "2030-03-31"
+    },
+    {
+      "year": "2024-25",
+      "category": "Captive Consumer",
+      "sub_targets": null,
+      "total": 29.91,
+      "effective_from": "2024-04-01",
+      "effective_to": "2025-03-31"
+    },
+    {
+      "year": "2025-26",
+      "category": "Captive Consumer",
+      "sub_targets": null,
+      "total": 33.01,
+      "effective_from": "2025-04-01",
+      "effective_to": "2026-03-31"
+    },
+    {
+      "year": "2026-27",
+      "category": "Captive Consumer",
+      "sub_targets": null,
+      "total": 35.95,
+      "effective_from": "2026-04-01",
+      "effective_to": "2027-03-31"
+    },
+    {
+      "year": "2027-28",
+      "category": "Captive Consumer",
+      "sub_targets": null,
+      "total": 38.81,
+      "effective_from": "2027-04-01",
+      "effective_to": "2028-03-31"
+    },
+    {
+      "year": "2028-29",
+      "category": "Captive Consumer",
+      "sub_targets": null,
+      "total": 41.36,
+      "effective_from": "2028-04-01",
+      "effective_to": "2029-03-31"
+    },
+    {
+      "year": "2029-30",
+      "category": "Captive Consumer",
+      "sub_targets": null,
+      "total": 43.33,
+      "effective_from": "2029-04-01",
+      "effective_to": "2030-03-31"
+    },
+    {
+      "year": "2024-25",
+      "category": "Open Access Consumer",
+      "sub_targets": null,
+      "total": 29.91,
+      "effective_from": "2024-04-01",
+      "effective_to": "2025-03-31"
+    },
+    {
+      "year": "2025-26",
+      "category": "Open Access Consumer",
+      "sub_targets": null,
+      "total": 33.01,
+      "effective_from": "2025-04-01",
+      "effective_to": "2026-03-31"
+    },
+    {
+      "year": "2026-27",
+      "category": "Open Access Consumer",
+      "sub_targets": null,
+      "total": 35.95,
+      "effective_from": "2026-04-01",
+      "effective_to": "2027-03-31"
+    },
+    {
+      "year": "2027-28",
+      "category": "Open Access Consumer",
+      "sub_targets": null,
+      "total": 38.81,
+      "effective_from": "2027-04-01",
+      "effective_to": "2028-03-31"
+    },
+    {
+      "year": "2028-29",
+      "category": "Open Access Consumer",
+      "sub_targets": null,
+      "total": 41.36,
+      "effective_from": "2028-04-01",
+      "effective_to": "2029-03-31"
+    },
+    {
+      "year": "2029-30",
+      "category": "Open Access Consumer",
+      "sub_targets": null,
+      "total": 43.33,
+      "effective_from": "2029-04-01",
+      "effective_to": "2030-03-31"
+    }
+  ]
+}

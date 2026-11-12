@@ -5,6 +5,7 @@ import CircularEconomyPage from "@/pages/CircularEconomyPage";
 import ConversationPage from "@/pages/ConversationPage";
 import DashboardPage from "@/pages/DashboardPage";
 import DataSourcesPage from "@/pages/DataSourcesPage";
+import EnergyCalculationsPage from "@/pages/EnergyCalculationsPage";
 import EnergyMixPage from "@/pages/EnergyMixPage";
 import EnergyPage from "@/pages/EnergyPage";
 import EnvironmentalImpactPage from "@/pages/EnvironmentalImpactPage";
@@ -21,6 +22,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import SolarRoiPage from "@/pages/SolarRoiPage";
 import StakeholderPortalPage from "@/pages/StakeholderPortalPage";
 import VoicePage from "@/pages/VoicePage";
+import WeatherPage from "@/pages/WeatherPage";
 import {
   Outlet,
   RouterProvider,
@@ -87,6 +89,18 @@ const voiceRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/voice",
   component: VoicePage,
+});
+
+const weatherRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/weather",
+  component: WeatherPage,
+});
+
+const energyCalculationsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/energy-calculations",
+  component: EnergyCalculationsPage,
 });
 
 const mapRoute = createRoute({
@@ -201,6 +215,8 @@ const routeTree = rootRoute.addChildren([
   homeRoute,
   askRoute,
   voiceRoute,
+  weatherRoute,
+  energyCalculationsRoute,
   mapRoute,
   servicesRoute,
   serviceDetailRoute,

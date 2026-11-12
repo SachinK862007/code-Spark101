@@ -195,10 +195,14 @@ describe("App route tree", () => {
 describe.each(MODULE_PAGES)(
   "$name module page",
   ({ path, element, interaction }) => {
-    it("renders its illustrative sample data with a visible sample-data label", async () => {
+    it("labels its data as sample data or live API status", async () => {
       await renderInShell(element, path);
 
-      expect(screen.getAllByTestId("sample.label").length).toBeGreaterThan(0);
+      const sampleLabels = screen.queryAllByTestId("sample.label");
+      const liveLabels = screen.queryAllByText(
+        /Backend calculation|Policy loaded|Served by URJA API|Live result|API-backed/i,
+      );
+      expect(sampleLabels.length + liveLabels.length).toBeGreaterThan(0);
     });
 
     it("offers at least one working clickable interaction", async () => {

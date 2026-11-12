@@ -1,0 +1,95 @@
+{
+  "sources": [
+    {
+      "id": "cea-capacity",
+      "dataset_name": "Installed capacity by source",
+      "provider": "Central Electricity Authority",
+      "source_url": "https://cea.nic.in/dashboard/?lang=1",
+      "reporting_period": "Latest monthly report",
+      "collected_at": "2026-11-12",
+      "last_updated": "2026-11-12",
+      "unit": "MW",
+      "data_status": "reference",
+      "processing_notes": "Capacity is a nameplate figure and is never treated as generation. Values are transcribed from published reports and refreshed manually.",
+      "used_by": ["Energy Mix", "Dashboard", "Forecasting"]
+    },
+    {
+      "id": "cea-generation",
+      "dataset_name": "Generation by source",
+      "provider": "Central Electricity Authority",
+      "source_url": "https://cea.nic.in/dashboard/?lang=1",
+      "reporting_period": "Latest monthly report",
+      "collected_at": "2026-11-12",
+      "last_updated": "2026-11-12",
+      "unit": "GWh",
+      "data_status": "reference",
+      "processing_notes": "Monthly energy figures converted to GWh. Renewable share is computed from the generation series, not from capacity.",
+      "used_by": ["Energy Mix", "Environmental Impact"]
+    },
+    {
+      "id": "mnre-physical-progress",
+      "dataset_name": "Renewable physical progress",
+      "provider": "Ministry of New and Renewable Energy",
+      "source_url": "https://mnre.gov.in/physical-progress/",
+      "reporting_period": "Latest published month",
+      "collected_at": "2026-11-01",
+      "last_updated": "2026-11-01",
+      "unit": "MW",
+      "data_status": "reference",
+      "processing_notes": "Solar, wind, biomass and small hydro capacity cross-checked against CEA totals.",
+      "used_by": ["Energy Mix", "Stakeholder Portal"]
+    },
+    {
+      "id": "mop-rpo",
+      "dataset_name": "RPO/RCO trajectory till 2029-30",
+      "provider": "Ministry of Power",
+      "source_url": "https://powermin.gov.in/sites/default/files/Renewable_Purchase_Obligation_and_Energy_Storage_Obligation_Trajectory_till_2029_30.pdf",
+      "reporting_period": "FY 2024-25 to FY 2029-30",
+      "collected_at": "2026-11-12",
+      "last_updated": "2026-11-12",
+      "unit": "% of consumption",
+      "data_status": "verified",
+      "processing_notes": "Stored as a versioned policy file with effective dates. State-level SERC trajectories must be added separately with their own source.",
+      "used_by": ["RPO Compliance", "Energy Calculations"]
+    },
+    {
+      "id": "pm-surya-ghar",
+      "dataset_name": "Residential rooftop solar CFA",
+      "provider": "MNRE — National Portal for Rooftop Solar",
+      "source_url": "https://solarrooftop.gov.in/",
+      "reporting_period": "Current scheme guidelines",
+      "collected_at": "2026-11-01",
+      "last_updated": "2026-11-01",
+      "unit": "INR",
+      "data_status": "verified",
+      "processing_notes": "Subsidy structure encoded as configurable rules; eligibility is never guaranteed by the calculator.",
+      "used_by": ["Solar ROI", "Energy Calculations"]
+    },
+    {
+      "id": "openweather",
+      "dataset_name": "Current weather and 5 day forecast",
+      "provider": "OpenWeatherMap",
+      "source_url": "https://openweathermap.org/api",
+      "reporting_period": "Real time, cached for 10 minutes",
+      "collected_at": null,
+      "last_updated": null,
+      "unit": "°C, m/s, hPa",
+      "data_status": "live",
+      "processing_notes": "Fetched server-side only. The API key never leaves the backend. Endpoint availability depends on the provider plan.",
+      "used_by": ["Weather", "Forecasting"]
+    },
+    {
+      "id": "google-search",
+      "dataset_name": "Web retrieval for Ask URJA",
+      "provider": "Google Programmable Search (Custom Search JSON API)",
+      "source_url": "https://developers.google.com/custom-search/v1/overview",
+      "reporting_period": "Real time, cached for 1 hour",
+      "collected_at": null,
+      "last_updated": null,
+      "unit": "n/a",
+      "data_status": "live",
+      "processing_notes": "Only titles, snippets and links are stored. Answers are composed from retrieved snippets and always show their sources.",
+      "used_by": ["Ask URJA", "Voice"]
+    }
+  ]
+}

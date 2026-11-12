@@ -27,6 +27,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { useApiResource } from "@/hooks/useApiResource";
+import { urjaApi } from "@/services/urjaApi";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowDown,
@@ -96,26 +98,6 @@ const DIRECTORY_ROWS: DirectoryRow[] = [
     status: "Updated",
   },
   {
-    id: "ev-charging",
-    name: "EV Charging Grid Access",
-    department: "Bureau of Energy Efficiency",
-    category: "Transport and RTO",
-    location: "New Delhi, Delhi",
-    contact: "011 2676 7000",
-    availability: "Mon–Fri · 9:00–17:00",
-    status: "Verified",
-  },
-  {
-    id: "passport-seva",
-    name: "Passport Seva Kendra",
-    department: "Ministry of External Affairs",
-    category: "Passport services",
-    location: "Mumbai, Maharashtra",
-    contact: "1800 258 1800",
-    availability: "Mon–Fri · 9:00–16:30",
-    status: "Verified",
-  },
-  {
     id: "municipal-water",
     name: "Municipal Water Connection",
     department: "Brihanmumbai Municipal Corporation",
@@ -144,16 +126,6 @@ const DIRECTORY_ROWS: DirectoryRow[] = [
     contact: "112",
     availability: "24 × 7 emergency",
     status: "Verified",
-  },
-  {
-    id: "rto-licence",
-    name: "Driving Licence Renewal",
-    department: "Regional Transport Office",
-    category: "Transport and RTO",
-    location: "Bengaluru, Karnataka",
-    contact: "080 2222 1111",
-    availability: "Mon–Fri · 10:00–17:00",
-    status: "Under review",
   },
   {
     id: "ration-card",
@@ -215,8 +187,6 @@ interface CategoryCard {
 }
 
 const CATEGORY_CARDS: CategoryCard[] = [
-  { id: "transport", label: "Transport and RTO", count: 42, icon: Bus },
-  { id: "passport", label: "Passport services", count: 18, icon: FileText },
   { id: "municipal", label: "Municipal services", count: 96, icon: Landmark },
   { id: "healthcare", label: "Healthcare", count: 64, icon: HeartPulse },
   {
@@ -237,8 +207,6 @@ const CATEGORY_CARDS: CategoryCard[] = [
 
 const CATEGORY_FILTERS = [
   "All categories",
-  "Transport and RTO",
-  "Passport services",
   "Municipal services",
   "Healthcare",
   "Electricity and utilities",
@@ -271,7 +239,7 @@ const CITIES = [
 ];
 
 const STATISTICS = [
-  { id: "categories", label: "Service categories", value: "8" },
+  { id: "categories", label: "Service categories", value: "6" },
   { id: "resources", label: "Listed resources", value: "394" },
   { id: "locations", label: "Available locations", value: "128" },
   { id: "updated", label: "Recently updated", value: "27" },
@@ -304,9 +272,14 @@ export default function ServicesPage() {
     "ready",
   );
 
+  // The directory is served by the backend; the bundled list is an offline
+  // fallback so the page still renders if the API is not running.
+  const directory = useApiResource(() => urjaApi.services(), []);
+  const directoryRows = directory.data?.services ?? DIRECTORY_ROWS;
+
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    const rows = DIRECTORY_ROWS.filter((row) => {
+    const rows = directoryRows.filter((row) => {
       const matchesQuery =
         needle.length === 0 ||
         row.name.toLowerCase().includes(needle) ||
@@ -327,7 +300,8 @@ export default function ServicesPage() {
       const order = left < right ? -1 : 1;
       return sortDirection === "asc" ? order : -order;
     });
-  }, [query, state, city, category, sortKey, sortDirection]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [query, state, city, category, sortKey, sortDirection, directory.data]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -373,6 +347,16 @@ export default function ServicesPage() {
         <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground">
           Find official information, service locations, contact details, and
           useful resources.
+        </p>
+        <p className="mt-5 flex flex-wrap items-center gap-2">
+          <StatusBadge tone={directory.data ? "success" : "neutral"}>
+            {directory.data ? "Served by URJA API" : "Offline fallback list"}
+          </StatusBadge>
+          {directory.data && (
+            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+              {directory.data.count} services · {directory.data.categories.length} categories
+            </span>
+          )}
         </p>
       </section>
 

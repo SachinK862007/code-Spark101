@@ -1,0 +1,34 @@
+# --- URJA / full-stack local development ---------------------------------
+# Python
+backend/.venv/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+backend/urja.db
+backend/*.db
+backend/*.sqlite3
+
+# Secrets and credentials
+.env
+.env.*
+!.env.example
+backend/.env
+backend/service-account*.json
+backend/credentials*.json
+*.pem
+
+# Logs
+*.log
+logs/
+
+# Node / frontend build output
+node_modules/
+frontend/**/node_modules/
+dist/
+frontend/**/dist/
+.vite/
+
+# OS / editor
+.DS_Store
+Thumbs.db

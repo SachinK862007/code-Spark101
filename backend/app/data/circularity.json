@@ -1,0 +1,56 @@
+{
+  "disclaimer": "No fictional recycler locations are listed. Authorisation status must be checked in the CPCB / state pollution control board register before handing over material.",
+  "data_status": "reference",
+  "streams": [
+    {
+      "id": "solar-panel",
+      "name": "Solar PV modules",
+      "handling": "Take-back through the manufacturer's EPR route under the E-Waste (Management) Rules; crystalline silicon modules are recycled for glass, aluminium, copper and silicon.",
+      "do_not": "Do not sell to informal scrap dealers — modules contain lead, cadmium compounds and antimony in some technologies.",
+      "source_name": "CPCB — E-Waste Management",
+      "source_url": "https://cpcb.nic.in/e-waste/"
+    },
+    {
+      "id": "lithium-battery",
+      "name": "Lithium-ion batteries",
+      "handling": "Return to the manufacturer or an authorised battery-waste recycler registered under the Battery Waste Management Rules, 2022.",
+      "do_not": "Do not puncture, crush or store damaged cells indoors; thermal runaway risk.",
+      "source_name": "CPCB — Battery Waste Management Rules",
+      "source_url": "https://cpcb.nic.in/battery-waste/"
+    },
+    {
+      "id": "inverter",
+      "name": "Inverters and power electronics",
+      "handling": "Dismantle through an authorised e-waste recycler; capacitors and PCBs require controlled disposal.",
+      "do_not": "Do not landfill — heavy metals and electrolyte residue leach into soil.",
+      "source_name": "CPCB — E-Waste Management",
+      "source_url": "https://cpcb.nic.in/e-waste/"
+    },
+    {
+      "id": "cables",
+      "name": "Cables and copper",
+      "handling": "Strip and recover copper and aluminium through registered metal recyclers; PVC insulation goes to authorised plastic recovery.",
+      "do_not": "Do not burn cable insulation to recover copper.",
+      "source_name": "CPCB — E-Waste Management",
+      "source_url": "https://cpcb.nic.in/e-waste/"
+    }
+  ],
+  "recycling_resources": [
+    {
+      "id": "cpcb-register",
+      "name": "CPCB authorised recycler register",
+      "kind": "Official register",
+      "description": "Authoritative list of registered e-waste dismantlers and recyclers, with state-wise filtering.",
+      "url": "https://cpcb.nic.in/e-waste/",
+      "source_name": "Central Pollution Control Board"
+    },
+    {
+      "id": "epr-portal",
+      "name": "EPR Portal for battery and e-waste",
+      "kind": "Official portal",
+      "description": "Producer registration and take-back obligation records under the EPR framework.",
+      "url": "https://eprewaste.cpcb.nic.in/",
+      "source_name": "CPCB"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "version": "urja-solar-assumptions-2026-11",
+  "effective_from": "2026-11-01",
+  "notes": [
+    "Yield, cost and degradation values are configurable planning assumptions, not guarantees. Edit this file to update them.",
+    "Subsidy follows the PM Surya Ghar: Muft Bijli Yojana residential CFA structure: ₹30,000/kW for the first 2 kW, ₹18,000/kW for the third kW, capped at ₹78,000 for residential rooftop systems. Availability depends on the DISCOM, vendor registration and application approval.",
+    "Commercial and industrial consumers are not eligible for the residential CFA and are shown zero subsidy here; state-level incentives may differ."
+  ],
+  "subsidy": {
+    "scheme": "PM Surya Ghar: Muft Bijli Yojana — residential rooftop CFA",
+    "source_name": "National Portal for Rooftop Solar (MNRE)",
+    "source_url": "https://solarrooftop.gov.in/",
+    "last_verified": "2026-11-01",
+    "residential": {
+      "first_2kw_per_kw": 30000,
+      "third_kw_per_kw": 18000,
+      "max_kw_covered": 3,
+      "cap": 78000
+    },
+    "commercial": {
+      "cap": 0
+    }
+  },
+  "system": {
+    "cost_per_kw": {
+      "residential": 52000,
+      "commercial": 47000
+    },
+    "performance_ratio": 0.78,
+    "degradation_per_year": 0.006,
+    "lifetime_years": 25,
+    "annual_maintenance_inr": 1200,
+    "maintenance_escalation": 0.05,
+    "area_sqft_per_kw": 100,
+    "system_type_factor": {
+      "ongrid": 1.0,
+      "offgrid": 1.28,
+      "hybrid": 1.16
+    },
+    "co2_kg_per_kwh": 0.71,
+    "tariff_escalation": 0.04
+  },
+  "yield_kwh_per_kwp_by_state": {
+    "Rajasthan": 1650,
+    "Gujarat": 1600,
+    "Tamil Nadu": 1550,
+    "Karnataka": 1520,
+    "Maharashtra": 1480,
+    "Andhra Pradesh": 1560,
+    "Uttar Pradesh": 1450,
+    "Delhi": 1500,
+    "Madhya Pradesh": 1520,
+    "Kerala": 1420,
+    "West Bengal": 1380,
+    "Punjab": 1480,
+    "Haryana": 1490,
+    "Odisha": 1430,
+    "Telangana": 1560,
+    "Bihar": 1400,
+    "Chhattisgarh": 1470,
+    "Assam": 1300,
+    "Jharkhand": 1420,
+    "Uttarakhand": 1480
+  },
+  "default_yield_kwh_per_kwp": 1480
+}

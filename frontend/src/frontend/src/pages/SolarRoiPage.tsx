@@ -13,12 +13,15 @@ import {
 } from "@/components/ui/select";
 import { STATE_FILTER_OPTIONS } from "@/data/greenGridData";
 import { cn } from "@/lib/utils";
+import { ApiError } from "@/services/apiClient";
+import { urjaApi } from "@/services/urjaApi";
 import {
   ArrowRight,
   Check,
   Download,
   IndianRupee,
   Leaf,
+  Loader2,
   RotateCcw,
   Save,
   SlidersHorizontal,
@@ -26,7 +29,7 @@ import {
   TrendingUp,
   Zap,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 /* ------------------------------------------------------------------ */
 /* Types + static configuration                                        */
@@ -66,7 +69,32 @@ interface RoiResult {
   co2Avoided: number;
   annualGeneration: number;
   selfConsumption: number;
+  lifetimeSavings: number;
+  lifetimeYears: number;
+  subsidyNote: string;
+  sourceLabel: string;
+  sourceUrl: string;
+  disclaimer: string;
 }
+
+const EMPTY_RESULT: RoiResult = {
+  systemSize: 0,
+  installCost: 0,
+  subsidy: 0,
+  finalInvestment: 0,
+  monthlySavings: 0,
+  annualSavings: 0,
+  paybackYears: 0,
+  co2Avoided: 0,
+  annualGeneration: 0,
+  selfConsumption: 0,
+  lifetimeSavings: 0,
+  lifetimeYears: 25,
+  subsidyNote: "",
+  sourceLabel: "",
+  sourceUrl: "",
+  disclaimer: "",
+};
 
 const CATEGORY_OPTIONS: { value: UserCategory; label: string }[] = [
   { value: "homeowner", label: "Homeowner" },
@@ -106,58 +134,6 @@ const DEFAULT_INPUTS: RoiInputs = {
 };
 
 const COMPARE_SIZES = [3, 5, 7.5, 10];
-
-const CO2_FACTOR = 0.71; // kg CO2 avoided per kWh of solar generation
-
-/* ------------------------------------------------------------------ */
-/* Calculation — illustrative, deterministic, no backend               */
-/* ------------------------------------------------------------------ */
-
-function computeRoi(inputs: RoiInputs, assumptions: Assumptions): RoiResult {
-  const efficiency = assumptions.efficiency / 100;
-  const typeFactor = SYSTEM_TYPE_FACTOR[inputs.systemType];
-
-  // Size the system to cover the household's consumption, capped by roof area.
-  const consumptionKw =
-    inputs.monthlyConsumption / (assumptions.yieldPerKw / 12);
-  const roofKw = inputs.roofArea / 100; // ~100 sq ft per kW
-  const systemSize = Math.max(
-    1,
-    Math.round(Math.min(consumptionKw, roofKw) * 2) / 2,
-  );
-
-  const annualGeneration =
-    systemSize * assumptions.yieldPerKw * efficiency * typeFactor;
-  const installCost = systemSize * assumptions.costPerKw * typeFactor;
-
-  const subsidy = Math.min(
-    (installCost * assumptions.subsidyRate) / 100,
-    assumptions.subsidyCap,
-  );
-  const finalInvestment = installCost - subsidy;
-
-  const selfConsumption = Math.min(
-    annualGeneration,
-    inputs.monthlyConsumption * 12,
-  );
-  const annualSavings = selfConsumption * inputs.tariff;
-  const monthlySavings = annualSavings / 12;
-  const paybackYears = annualSavings > 0 ? finalInvestment / annualSavings : 0;
-  const co2Avoided = annualGeneration * CO2_FACTOR;
-
-  return {
-    systemSize,
-    installCost,
-    subsidy,
-    finalInvestment,
-    monthlySavings,
-    annualSavings,
-    paybackYears,
-    co2Avoided,
-    annualGeneration,
-    selfConsumption,
-  };
-}
 
 /* ------------------------------------------------------------------ */
 /* Formatting helpers                                                  */
@@ -614,11 +590,62 @@ export default function SolarRoiPage() {
   const [assumptions, setAssumptions] =
     useState<Assumptions>(DEFAULT_ASSUMPTIONS);
   const [showAssumptions, setShowAssumptions] = useState(false);
-  const [calculated, setCalculated] = useState<RoiResult>(() =>
-    computeRoi(DEFAULT_INPUTS, DEFAULT_ASSUMPTIONS),
-  );
+  const [calculated, setCalculated] = useState<RoiResult>(EMPTY_RESULT);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
+
+  const calculateWithBackend = useCallback(
+    async (nextInputs: RoiInputs) => {
+      setLoading(true);
+      setApiError(null);
+      try {
+        const response = await urjaApi.solarCalculate({
+          state: nextInputs.state === "All India" ? "Rajasthan" : nextInputs.state,
+          city: nextInputs.location,
+          monthly_bill: nextInputs.monthlyBill,
+          monthly_consumption_kwh: nextInputs.monthlyConsumption,
+          tariff: nextInputs.tariff,
+          roof_area_sqft: nextInputs.roofArea,
+          consumer_category:
+            nextInputs.category === "homeowner" ? "residential" : "commercial",
+          system_type: nextInputs.systemType,
+        });
+        setCalculated({
+          systemSize: response.sizing.recommended_capacity_kw,
+          installCost: response.cost.install_cost_inr,
+          subsidy: response.cost.subsidy_estimate_inr,
+          finalInvestment: response.cost.net_investment_inr,
+          monthlySavings: response.returns.monthly_savings_inr,
+          annualSavings: response.returns.annual_savings_inr,
+          paybackYears: response.returns.payback_years ?? 0,
+          co2Avoided: response.returns.co2_avoided_kg_per_year,
+          annualGeneration: response.returns.annual_generation_kwh,
+          selfConsumption: response.returns.self_consumed_kwh,
+          lifetimeSavings: response.returns.lifetime_savings_inr,
+          lifetimeYears: response.returns.lifetime_years,
+          subsidyNote: response.cost.subsidy_note,
+          sourceLabel: `${response.subsidy_source.scheme} · verified ${response.subsidy_source.last_verified}`,
+          sourceUrl: response.subsidy_source.source_url,
+          disclaimer: response.disclaimer,
+        });
+      } catch (error) {
+        setApiError(
+          error instanceof ApiError
+            ? error.message
+            : "The solar calculation failed.",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    void calculateWithBackend(DEFAULT_INPUTS);
+  }, [calculateWithBackend]);
 
   const comparison = useMemo(
     () =>
@@ -662,7 +689,7 @@ export default function SolarRoiPage() {
   }
 
   function handleCalculate() {
-    setCalculated(computeRoi(inputs, assumptions));
+    void calculateWithBackend(inputs);
     setSaved(false);
     setDownloaded(false);
   }
@@ -670,9 +697,36 @@ export default function SolarRoiPage() {
   function handleReset() {
     setInputs(DEFAULT_INPUTS);
     setAssumptions(DEFAULT_ASSUMPTIONS);
-    setCalculated(computeRoi(DEFAULT_INPUTS, DEFAULT_ASSUMPTIONS));
+    void calculateWithBackend(DEFAULT_INPUTS);
     setSaved(false);
     setDownloaded(false);
+  }
+
+  function handleDownload() {
+    const rows = [
+      ["Field", "Value"],
+      ["Location", `${inputs.location}, ${inputs.state}`],
+      ["Recommended capacity (kW)", calculated.systemSize.toString()],
+      ["Installation cost (INR)", calculated.installCost.toString()],
+      ["Subsidy estimate (INR)", calculated.subsidy.toString()],
+      ["Net investment (INR)", calculated.finalInvestment.toString()],
+      ["Annual generation (kWh)", calculated.annualGeneration.toString()],
+      ["Annual savings (INR)", calculated.annualSavings.toString()],
+      ["Payback (years)", calculated.paybackYears.toFixed(2)],
+      [`Lifetime savings over ${calculated.lifetimeYears} years (INR)`, calculated.lifetimeSavings.toString()],
+      ["CO2 avoided (kg/year)", calculated.co2Avoided.toString()],
+      ["Subsidy source", calculated.sourceLabel],
+      ["Assumption note", calculated.disclaimer],
+    ];
+    const csv = rows.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "urja-solar-roi.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+    setDownloaded(true);
   }
 
   return (
@@ -696,9 +750,8 @@ export default function SolarRoiPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <SampleTag />
-            <StatusBadge tone="neutral">DEMO DATA</StatusBadge>
-            <SourceBadge>MNRE benchmark costs · CEA tariffs</SourceBadge>
+            <StatusBadge tone="primary">Backend calculation</StatusBadge>
+            <SourceBadge>PM Surya Ghar subsidy rules · configured assumptions</SourceBadge>
           </div>
         </div>
       </div>
@@ -847,7 +900,9 @@ export default function SolarRoiPage() {
                 <SampleTag />
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
-                Configurable cost, yield, subsidy and efficiency parameters.
+                Scenario-only parameters. They drive the comparison table below;
+                the ROI result itself uses the backend&apos;s configured assumptions
+                (edit backend/app/data/solar_assumptions.json to change those).
               </p>
               <div className="mt-5 space-y-4">
                 <NumberField
@@ -917,8 +972,27 @@ export default function SolarRoiPage() {
                     : "Small Business"}
                 </p>
               </div>
-              <SampleTag />
+              <div className="flex items-center gap-2">
+                {loading && (
+                  <Loader2
+                    className="size-4 animate-spin text-muted-foreground"
+                    aria-hidden="true"
+                  />
+                )}
+                <StatusBadge tone={apiError ? "danger" : "success"}>
+                  {apiError ? "Calculation error" : "Live result"}
+                </StatusBadge>
+              </div>
             </div>
+
+            {apiError && (
+              <p
+                role="alert"
+                className="mt-4 rounded-xl border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+              >
+                {apiError}
+              </p>
+            )}
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <ResultMetric
@@ -940,9 +1014,7 @@ export default function SolarRoiPage() {
                 index={3}
                 label="Subsidy estimate"
                 value={formatCompactInr(calculated.subsidy)}
-                hint={`${assumptions.subsidyRate}% up to ${formatCompactInr(
-                  assumptions.subsidyCap,
-                )}`}
+                hint="Estimated · subject to approval"
                 icon={Check}
               />
               <ResultMetric
@@ -1004,7 +1076,8 @@ export default function SolarRoiPage() {
                 type="button"
                 variant="outline"
                 data-ocid="solar.download_button"
-                onClick={() => setDownloaded(true)}
+                onClick={handleDownload}
+                disabled={loading}
                 className="h-10 rounded-full border-border bg-card text-sm font-medium text-foreground transition-smooth hover:border-primary/40 hover:bg-secondary"
               >
                 {downloaded ? (
@@ -1012,7 +1085,7 @@ export default function SolarRoiPage() {
                 ) : (
                   <Download className="size-4" aria-hidden="true" />
                 )}
-                {downloaded ? "Report ready" : "Download sample report"}
+                {downloaded ? "Report downloaded" : "Download CSV report"}
               </Button>
             </div>
             {saved && (
@@ -1029,8 +1102,7 @@ export default function SolarRoiPage() {
                 data-ocid="solar.download_success"
                 className="mt-3 text-xs text-muted-foreground"
               >
-                A sample report would be generated here. This prototype does not
-                produce a file.
+                A CSV of the calculated result and its assumptions was downloaded.
               </p>
             )}
           </Card>
@@ -1176,20 +1248,33 @@ export default function SolarRoiPage() {
             </p>
             <p className="text-sm leading-relaxed text-muted-foreground">
               Actual system size, cost, subsidy and savings depend on your
-              location, irradiance, shading, MNRE subsidy rules and your
-              utility&apos;s tariff and net-metering policy. All figures on this
-              screen are DEMO DATA for illustration and are not a quotation.
+              location, irradiance, shading, subsidy rules and your
+              utility&apos;s tariff and net-metering policy. These results are
+              planning estimates from the URJA calculation service, not a
+              quotation.
             </p>
-            <p className="pt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-              Sources: MNRE benchmark costs · CEA tariff orders · Reporting
-              period: FY 2024-25
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {calculated.subsidyNote || calculated.disclaimer}
             </p>
+            {calculated.sourceUrl && (
+              <p className="pt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
+                Source:{" "}
+                <a
+                  href={calculated.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="underline"
+                >
+                  {calculated.sourceLabel}
+                </a>
+              </p>
+            )}
           </div>
         </div>
       </div>
 
       <p className="mt-8 border-t border-border pt-6 font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-        Illustrative prototype · All figures are DEMO DATA ·{" "}
+        Calculated by the URJA FastAPI backend ·{" "}
         <span className="inline-flex items-center gap-1">
           Next step
           <ArrowRight className="size-3" aria-hidden="true" />
